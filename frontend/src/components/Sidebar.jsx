@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { FaHashtag, FaPlus, FaSignOutAlt, FaUserCircle, FaUserShield, FaTimes, FaUser } from 'react-icons/fa'
+import { FaHashtag, FaPlus, FaSignOutAlt, FaUserCircle, FaUserShield, FaTimes, FaUser, FaLock } from 'react-icons/fa'
 import { useChatStore, useAuthStore } from '../utils/store'
 import { roomsAPI, usersAPI } from '../services/api'
 import '../styles/sidebar.css'
@@ -12,6 +12,7 @@ function Sidebar({ onLogout }) {
   const [showCreateRoom, setShowCreateRoom] = useState(false)
   const [newRoomName, setNewRoomName] = useState('')
   const [newRoomDesc, setNewRoomDesc] = useState('')
+  const [isPrivateRoom, setIsPrivateRoom] = useState(false)
   const [showProfile, setShowProfile] = useState(false)
   const [showEditProfile, setShowEditProfile] = useState(false)
   const [showChangePassword, setShowChangePassword] = useState(false)
@@ -30,7 +31,7 @@ function Sidebar({ onLogout }) {
       const response = await roomsAPI.createRoom({
         name: newRoomName,
         description: newRoomDesc,
-        is_private: false
+        is_private: isPrivateRoom
       })
 
       const roomsRes = await roomsAPI.getRooms()
@@ -38,6 +39,7 @@ function Sidebar({ onLogout }) {
       
       setNewRoomName('')
       setNewRoomDesc('')
+      setIsPrivateRoom(false)
       setShowCreateRoom(false)
       
       // Auto-select the new room
@@ -52,6 +54,12 @@ function Sidebar({ onLogout }) {
   }
 
   const handleRoomClick = (room) => {
+    // Check if room is private and user is not admin
+    if (room.is_private && !isAdmin) {
+      alert('This is a private channel. Only administrators can access it.')
+      return
+    }
+    
     setCurrentRoom(room)
     if (ws) {
       ws.joinRoom(room.id)
@@ -198,14 +206,21 @@ function Sidebar({ onLogout }) {
           {rooms.map((room) => {
             const unreadCount = unreadRooms[room.id] || 0
             const hasUnread = unreadCount > 0
+            const isLocked = room.is_private && !isAdmin
             
             return (
               <div
                 key={room.id}
-                className={`channel-item ${currentRoom?.id === room.id ? 'active' : ''} ${hasUnread ? 'has-unread' : ''}`}
+                className={`channel-item ${currentRoom?.id === room.id ? 'active' : ''} ${hasUnread ? 'has-unread' : ''} ${isLocked ? 'locked' : ''}`}
                 onClick={() => handleRoomClick(room)}
+                title={isLocked ? 'Private channel - Admin only' : ''}
               >
-                <FaHashtag className="channel-icon" />
+                <div className="channel-icon-wrapper">
+                  <FaHashtag className="channel-icon" />
+                  {room.is_private && (
+                    <FaLock className="lock-icon" />
+                  )}
+                </div>
                 <span className="channel-name">{room.name}</span>
                 <div className="channel-actions">
                   {hasUnread && (
@@ -292,6 +307,19 @@ function Sidebar({ onLogout }) {
                   placeholder="Channel description"
                   rows="3"
                 />
+              </div>
+              <div className="form-group">
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={isPrivateRoom}
+                    onChange={(e) => setIsPrivateRoom(e.target.checked)}
+                  />
+                  <span>Private Channel (Admin & Super Admin only)</span>
+                </label>
+                <small className="form-help-text">
+                  Private channels are only visible and accessible to administrators
+                </small>
               </div>
               <div className="modal-actions">
                 <button type="button" className="btn-secondary" onClick={() => setShowCreateRoom(false)}>

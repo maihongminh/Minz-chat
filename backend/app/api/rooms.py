@@ -50,7 +50,9 @@ async def create_room(
 
 @router.get("/", response_model=List[RoomResponse])
 async def get_rooms(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    rooms = db.query(Room).filter(Room.is_private == False).all()
+    # All users can see all rooms (including private ones)
+    # Private rooms will be locked/disabled for non-admin users in the frontend
+    rooms = db.query(Room).all()
     
     # Add member count
     result = []
@@ -88,6 +90,13 @@ async def join_room(
     room = db.query(Room).filter(Room.id == room_id).first()
     if not room:
         raise HTTPException(status_code=404, detail="Room not found")
+    
+    # Check permission for private rooms
+    if room.is_private and str(current_user.role.value) not in ['admin', 'super_admin']:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only administrators can join private channels"
+        )
     
     # Check if already a member
     existing_member = db.query(RoomMember).filter(

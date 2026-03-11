@@ -11,6 +11,7 @@ function ChatArea() {
   const [isTyping, setIsTyping] = useState(false)
   const messagesEndRef = useRef(null)
   const typingTimeoutRef = useRef(null)
+  const textareaRef = useRef(null)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -66,6 +67,12 @@ function ChatArea() {
 
   const handleInputChange = (e) => {
     setMessageInput(e.target.value)
+    
+    // Auto-resize textarea
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto'
+      textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px'
+    }
     
     // Send typing indicator
     if (!ws) return
@@ -125,11 +132,32 @@ function ChatArea() {
     }
 
     setMessageInput('')
+    
+    // Reset textarea height after sending
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto'
+    }
+  }
+
+  const handleKeyDown = (e) => {
+    // Send message on Enter (without Shift)
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSendMessage(e)
+    }
+    // Allow Shift + Enter to create new line (default textarea behavior)
   }
 
   const formatTime = (timestamp) => {
     try {
-      const date = new Date(timestamp)
+      // Backend returns UTC timestamp without 'Z', so we need to append it
+      // to ensure correct parsing as UTC
+      let dateString = timestamp
+      if (typeof timestamp === 'string' && !timestamp.endsWith('Z') && !timestamp.includes('+')) {
+        dateString = timestamp + 'Z'
+      }
+      
+      const date = new Date(dateString)
       const today = new Date()
       const isToday = date.toDateString() === today.toDateString()
       
@@ -318,8 +346,8 @@ function ChatArea() {
 
       <div className="message-input-container">
         <form onSubmit={handleSendMessage} className="message-input-form">
-          <input
-            type="text"
+          <textarea
+            ref={textareaRef}
             className="message-input"
             placeholder={
               currentRoom 
@@ -328,13 +356,15 @@ function ChatArea() {
             }
             value={messageInput}
             onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
             onFocus={handleClearUnread}
+            rows={1}
           />
           <button 
             type="submit" 
             className="send-button"
             disabled={!messageInput.trim()}
-            title="Send message"
+            title="Send message (Enter)"
           >
             <FaPaperPlane />
           </button>

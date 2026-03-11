@@ -93,9 +93,38 @@
   color: var(--text-primary);
 }
 
+.channel-item.locked {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.channel-item.locked:hover {
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.channel-icon-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
 .channel-icon {
   font-size: 20px;
   flex-shrink: 0;
+}
+
+.lock-icon {
+  position: absolute;
+  bottom: -2px;
+  right: -6px;
+  font-size: 10px;
+  color: var(--text-muted);
+  background: var(--bg-secondary);
+  border-radius: 50%;
+  padding: 2px;
 }
 
 .channel-name {
@@ -260,6 +289,34 @@
 .modal-content .form-group input:focus,
 .modal-content .form-group textarea:focus {
   border-color: var(--accent-primary);
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-weight: normal;
+  margin: 0;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: auto;
+  cursor: pointer;
+  accent-color: var(--accent-primary);
+}
+
+.checkbox-label span {
+  user-select: none;
+}
+
+.form-help-text {
+  display: block;
+  margin-top: 6px;
+  margin-left: 30px;
+  font-size: 13px;
+  color: var(--text-muted);
+  font-style: italic;
 }
 
 .modal-actions {
