@@ -219,70 +219,90 @@ function ChatArea() {
             filteredMessages.map((msg, index) => {
               const showAvatar = index === 0 || filteredMessages[index - 1].sender_id !== msg.sender_id
               const isCurrentUser = msg.sender_id === user.id
+              
+              // Check if this is the last message from current user in a group
+              const isLastInGroup = index === filteredMessages.length - 1 || 
+                                    filteredMessages[index + 1].sender_id !== msg.sender_id
+              
+              // For current user's messages, determine if we should show seen/sent indicator
+              let showSeenIndicator = false
+              let seenStatus = null
+              
+              if (isCurrentUser) {
+                const readBy = messageReadReceipts[msg.id] || []
+                const isRead = readBy.filter(id => id !== user.id).length > 0
+                
+                if (isLastInGroup) {
+                  // Always show indicator for last message in group
+                  showSeenIndicator = true
+                  seenStatus = isRead ? 'seen' : 'sent'
+                } else {
+                  // Check if next message has different read status
+                  const nextMsg = filteredMessages[index + 1]
+                  if (nextMsg && nextMsg.sender_id === user.id) {
+                    const nextReadBy = messageReadReceipts[nextMsg.id] || []
+                    const nextIsRead = nextReadBy.filter(id => id !== user.id).length > 0
+                    
+                    // Show indicator if current is read but next is not
+                    if (isRead && !nextIsRead) {
+                      showSeenIndicator = true
+                      seenStatus = 'seen'
+                    }
+                  }
+                }
+              }
 
               return (
-                <div key={msg.id} className={`message ${showAvatar ? 'with-avatar' : ''} ${isCurrentUser ? 'own-message' : 'other-message'}`}>
-                  {showAvatar ? (
-                    <div className="message-header">
-                      {!isCurrentUser && (
-                        msg.sender_avatar ? (
-                          <img src={msg.sender_avatar} alt="" className="message-avatar" />
-                        ) : (
-                          <FaUserCircle className="message-avatar-default" />
-                        )
-                      )}
-                      <div className="message-content">
-                        <div className="message-meta">
-                          <span className={`message-author ${isCurrentUser ? 'current-user' : ''}`}>
-                            {msg.sender_username}
-                          </span>
-                          <span className="message-time">{formatTime(msg.created_at)}</span>
-                        </div>
-                        <div className="message-text">
-                          {msg.content}
-                          {isCurrentUser && (
-                            <span className="read-receipt">
-                              {(() => {
-                                const readBy = messageReadReceipts[msg.id] || []
-                                const readCount = readBy.filter(id => id !== user.id).length
-                                if (readCount > 0) {
-                                  return <span className="seen-indicator"> ✓✓ Seen</span>
-                                }
-                                return <span className="sent-indicator"> ✓</span>
-                              })()}
+                <React.Fragment key={msg.id}>
+                  <div className={`message ${showAvatar ? 'with-avatar' : ''} ${isCurrentUser ? 'own-message' : 'other-message'}`}>
+                    {showAvatar ? (
+                      <div className="message-header">
+                        {!isCurrentUser && (
+                          msg.sender_avatar ? (
+                            <img src={msg.sender_avatar} alt="" className="message-avatar" />
+                          ) : (
+                            <FaUserCircle className="message-avatar-default" />
+                          )
+                        )}
+                        <div className="message-content">
+                          <div className="message-meta">
+                            <span className={`message-author ${isCurrentUser ? 'current-user' : ''}`}>
+                              {msg.sender_username}
                             </span>
-                          )}
+                            <span className="message-time">{formatTime(msg.created_at)}</span>
+                          </div>
+                          <div className="message-text">
+                            {msg.content}
+                          </div>
                         </div>
-                      </div>
-                      {isCurrentUser && (
-                        msg.sender_avatar ? (
-                          <img src={msg.sender_avatar} alt="" className="message-avatar" />
-                        ) : (
-                          <FaUserCircle className="message-avatar-default" />
-                        )
-                      )}
-                    </div>
-                  ) : (
-                    <div className="message-compact">
-                      <span className="message-time-compact">{formatTime(msg.created_at)}</span>
-                      <div className="message-text">
-                        {msg.content}
                         {isCurrentUser && (
-                          <span className="read-receipt">
-                            {(() => {
-                              const readBy = messageReadReceipts[msg.id] || []
-                              const readCount = readBy.filter(id => id !== user.id).length
-                              if (readCount > 0) {
-                                return <span className="seen-indicator"> ✓✓</span>
-                              }
-                              return <span className="sent-indicator"> ✓</span>
-                            })()}
-                          </span>
+                          msg.sender_avatar ? (
+                            <img src={msg.sender_avatar} alt="" className="message-avatar" />
+                          ) : (
+                            <FaUserCircle className="message-avatar-default" />
+                          )
                         )}
                       </div>
+                    ) : (
+                      <div className="message-compact">
+                        <span className="message-time-compact">{formatTime(msg.created_at)}</span>
+                        <div className="message-text">
+                          {msg.content}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {showSeenIndicator && (
+                    <div className={`seen-receipt ${isCurrentUser ? 'own-message' : 'other-message'}`}>
+                      {seenStatus === 'seen' ? (
+                        <span className="seen-indicator">✓✓ Seen</span>
+                      ) : (
+                        <span className="sent-indicator">✓ Sent</span>
+                      )}
                     </div>
                   )}
-                </div>
+                </React.Fragment>
               )
             })
           )}

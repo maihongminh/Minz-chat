@@ -326,6 +326,24 @@
   vertical-align: middle;
 }
 
+/* Seen Receipt - Below Message */
+.seen-receipt {
+  display: flex;
+  font-size: 11px;
+  padding: 2px 0 4px;
+  margin-top: 2px;
+}
+
+.seen-receipt.own-message {
+  justify-content: flex-end;
+  padding-right: 8px; /* Align closer to the right edge */
+}
+
+.seen-receipt.other-message {
+  justify-content: flex-start;
+  padding-left: 56px; /* Align with message bubble (avatar width 40px + gap 16px) */
+}
+
 .seen-indicator {
   color: #00a8ff;
   font-weight: 600;
