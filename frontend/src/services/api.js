@@ -43,6 +43,7 @@ export const usersAPI = {
   getOnlineUsers: () => api.get('/users/online'),
   getUser: (userId) => api.get(`/users/${userId}`),
   updateProfile: (data) => api.put('/users/me', data),
+  changePassword: (data) => api.post('/users/me/change-password', data),
 }
 
 // Rooms APIs

@@ -2,9 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 
-from ..core import get_db
+from ..core import get_db, verify_password, get_password_hash
 from ..models import User
-from ..schemas import UserResponse, UserUpdate
+from ..schemas import UserResponse, UserUpdate, PasswordChange
 from .auth import get_current_user
 
 router = APIRouter(prefix="/users", tags=["Users"])
@@ -40,3 +40,22 @@ async def update_profile(
     db.commit()
     db.refresh(current_user)
     return current_user
+
+@router.post("/me/change-password")
+async def change_password(
+    password_data: PasswordChange,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    # Verify current password
+    if not current_user.hashed_password:
+        raise HTTPException(status_code=400, detail="Cannot change password for OAuth users")
+    
+    if not verify_password(password_data.current_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    
+    # Update to new password
+    current_user.hashed_password = get_password_hash(password_data.new_password)
+    db.commit()
+    
+    return {"message": "Password changed successfully"}

@@ -1,7 +1,7 @@
 # 📊 LUỒNG XỬ LÝ DỰ ÁN FIRST-CHAT
 
 > **Tài liệu mô tả chi tiết các luồng xử lý trong ứng dụng chat real-time**  
-> Version: 2.1 | Cập nhật: 2026-03-11
+> Version: 2.2 | Cập nhật: 2026-03-11
 
 ---
 
@@ -20,6 +20,7 @@
    - 9.2 [Typing Indicator](#92-typing-indicator-hiển-thị-đang-gõ)
    - 9.3 [Read Receipts](#93-read-receipts-xác-nhận-đã-xem-tin-nhắn)
    - 9.4 [Tích hợp các tính năng](#94-tích-hợp-các-tính-năng)
+   - 9.5 [User Profile Settings](#95-user-profile-settings-quản-lý-hồ-sơ-người-dùng)
 
 ---
 
@@ -1181,6 +1182,381 @@ useEffect(() => {
 
 ---
 
+### 9.5 User Profile Settings (Quản lý hồ sơ người dùng)
+
+> **Mục đích:** Cho phép user quản lý thông tin cá nhân, đổi avatar, đổi mật khẩu
+
+#### 9.5.1 Hiển thị Profile Button
+
+**Frontend (Sidebar.jsx):**
+```jsx
+// Trong user-actions section (thay thế Admin Panel cho user thường)
+{user?.role === 'ADMIN' && (
+  <button className="btn-admin-panel" onClick={handleAdminPanelClick}>
+    <FaCog /> Admin Panel
+  </button>
+)}
+
+{/* Tất cả user đều có Profile Settings */}
+<button className="btn-profile" onClick={openProfile}>
+  <FaUser /> Profile Settings
+</button>
+```
+
+**Logic phân quyền:**
+- **Admin**: Hiển thị cả "Admin Panel" và "Profile Settings"
+- **User thường**: Chỉ hiển thị "Profile Settings"
+
+---
+
+#### 9.5.2 View Profile (Xem thông tin)
+
+**Luồng xử lý:**
+
+```
+User click "Profile Settings"
+    ↓
+Frontend mở Profile Modal
+    ↓
+Hiển thị thông tin từ current user state:
+    - Avatar (từ avatar_url hoặc default icon)
+    - Username (không thể thay đổi)
+    - Email (không thể thay đổi)
+    - Full Name (có thể thay đổi)
+    - Role (chỉ xem)
+    ↓
+User có 3 options:
+    1. Edit Profile (đổi tên/avatar)
+    2. Change Password
+    3. Close modal
+```
+
+**Frontend Component:**
+```jsx
+const [showProfile, setShowProfile] = useState(false);
+
+const openProfile = () => {
+  setShowProfile(true);
+};
+
+// Profile Modal hiển thị
+<div className="profile-modal">
+  <div className="profile-avatar-wrapper">
+    {user?.avatar_url ? (
+      <img src={user.avatar_url} alt="Avatar" />
+    ) : (
+      <FaUserCircle className="profile-avatar-large" />
+    )}
+  </div>
+  <div className="profile-info">
+    <p><strong>Username:</strong> {user?.username}</p>
+    <p><strong>Email:</strong> {user?.email}</p>
+    <p><strong>Full Name:</strong> {user?.full_name || 'Not set'}</p>
+    <p><strong>Role:</strong> {user?.role}</p>
+  </div>
+  <div className="profile-actions">
+    <button onClick={openEditProfile}>Edit Profile</button>
+    <button onClick={openChangePassword}>Change Password</button>
+  </div>
+</div>
+```
+
+---
+
+#### 9.5.3 Edit Profile (Đổi tên & Avatar)
+
+**Luồng xử lý:**
+
+```
+User click "Edit Profile"
+    ↓
+Frontend mở Edit Profile Modal
+    ↓
+User có thể:
+    1. Upload avatar mới (chọn file ảnh)
+    2. Thay đổi Full Name
+    ↓
+User click "Save Changes"
+    ↓
+Frontend validate input
+    ↓
+Convert avatar to base64 (nếu có upload)
+    ↓
+PUT /api/users/me
+    Headers: { Authorization: "Bearer {token}" }
+    Body: {
+      full_name: "New Name",
+      avatar_url: "data:image/jpeg;base64,..." // hoặc null
+    }
+    ↓
+Backend (users.py):
+    - get_current_user() → verify JWT token
+    - Validate input (UserUpdate schema)
+    - Cập nhật user.full_name (nếu có)
+    - Cập nhật user.avatar_url (nếu có)
+    - db.commit()
+    - Return updated user info
+    ↓
+Frontend nhận response:
+    - Cập nhật user state
+    - Đóng modal
+    - Hiển thị success message
+    - Avatar/name mới hiển thị trong sidebar ngay lập tức
+```
+
+**Backend API:**
+```python
+# backend/app/api/users.py
+
+@router.put("/me", response_model=UserResponse)
+async def update_current_user(
+    user_update: UserUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Cập nhật thông tin user hiện tại
+    - full_name: Tên đầy đủ (optional)
+    - avatar_url: Base64 image hoặc URL (optional)
+    """
+    if user_update.full_name is not None:
+        current_user.full_name = user_update.full_name
+    
+    if user_update.avatar_url is not None:
+        current_user.avatar_url = user_update.avatar_url
+    
+    db.commit()
+    db.refresh(current_user)
+    
+    return current_user
+```
+
+**Frontend Service:**
+```javascript
+// frontend/src/services/api.js
+
+export const usersAPI = {
+  updateProfile: async (data) => {
+    const response = await api.put('/users/me', data);
+    return response.data;
+  },
+};
+```
+
+**Frontend Handler:**
+```jsx
+const handleAvatarChange = (e) => {
+  const file = e.target.files[0];
+  if (file) {
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      alert('File size must be less than 2MB');
+      return;
+    }
+    
+    // Convert to base64
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setEditedAvatar(reader.result); // data:image/jpeg;base64,...
+    };
+    reader.readAsDataURL(file);
+  }
+};
+
+const handleSaveProfile = async () => {
+  try {
+    const updateData = {
+      full_name: editedFullName || user.full_name,
+      avatar_url: editedAvatar || user.avatar_url
+    };
+    
+    const updatedUser = await usersAPI.updateProfile(updateData);
+    setUser(updatedUser);
+    setShowEditProfile(false);
+    alert('Profile updated successfully!');
+  } catch (error) {
+    alert('Failed to update profile: ' + error.response?.data?.detail);
+  }
+};
+```
+
+---
+
+#### 9.5.4 Change Password (Đổi mật khẩu)
+
+**Luồng xử lý:**
+
+```
+User click "Change Password"
+    ↓
+Frontend mở Change Password Modal
+    ↓
+User nhập:
+    - Current Password (required)
+    - New Password (required, min 6 chars)
+    - Confirm New Password (required, must match)
+    ↓
+Frontend validate:
+    - Tất cả fields đều required
+    - New password ≠ Current password
+    - New password === Confirm password
+    - New password length >= 6
+    ↓
+POST /api/users/me/change-password
+    Headers: { Authorization: "Bearer {token}" }
+    Body: {
+      current_password: "old_pass",
+      new_password: "new_pass"
+    }
+    ↓
+Backend (users.py):
+    - get_current_user() → verify JWT token
+    - Validate PasswordChange schema
+    - verify_password(current_password, user.hashed_password)
+        → Nếu sai: HTTPException 400 "Incorrect current password"
+    - Hash new_password
+    - user.hashed_password = new_hash
+    - db.commit()
+    - Return success message
+    ↓
+Frontend nhận response:
+    - Hiển thị success message
+    - Đóng modal
+    - Clear form
+    - (Optional) Auto logout và yêu cầu đăng nhập lại
+```
+
+**Backend API:**
+```python
+# backend/app/api/users.py
+
+@router.post("/me/change-password")
+async def change_password(
+    password_data: PasswordChange,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Đổi mật khẩu cho user hiện tại
+    - Verify current password
+    - Hash và lưu new password
+    """
+    # Verify current password
+    if not verify_password(password_data.current_password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Incorrect current password"
+        )
+    
+    # Hash new password
+    current_user.hashed_password = get_password_hash(password_data.new_password)
+    db.commit()
+    
+    return {"message": "Password changed successfully"}
+```
+
+**Backend Schema:**
+```python
+# backend/app/schemas/user.py
+
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str = Field(..., min_length=6)
+```
+
+**Frontend Handler:**
+```jsx
+const handleChangePassword = async () => {
+  // Validation
+  if (!currentPassword || !newPassword || !confirmPassword) {
+    alert('All fields are required');
+    return;
+  }
+  
+  if (newPassword !== confirmPassword) {
+    alert('New passwords do not match');
+    return;
+  }
+  
+  if (newPassword.length < 6) {
+    alert('New password must be at least 6 characters');
+    return;
+  }
+  
+  if (newPassword === currentPassword) {
+    alert('New password must be different from current password');
+    return;
+  }
+  
+  try {
+    await usersAPI.changePassword({
+      current_password: currentPassword,
+      new_password: newPassword
+    });
+    
+    alert('Password changed successfully!');
+    setShowChangePassword(false);
+    
+    // Clear form
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+  } catch (error) {
+    const errorMsg = error.response?.data?.detail || 'Failed to change password';
+    alert(errorMsg);
+  }
+};
+```
+
+---
+
+#### 9.5.5 Security Considerations
+
+**Password Security:**
+- ✅ Backend hash password với bcrypt (cost factor 12)
+- ✅ Frontend không lưu password ở bất kỳ đâu
+- ✅ Validate current password trước khi cho phép đổi
+- ✅ Minimum password length: 6 characters (có thể tăng lên 8+)
+
+**Avatar Upload:**
+- ✅ Convert image to base64 (lưu trực tiếp trong DB)
+- ✅ Giới hạn file size: Max 2MB
+- ✅ Accept formats: image/jpeg, image/png, image/gif
+- ⚠️ **Future improvement**: Upload to S3/Cloud Storage thay vì base64 trong DB
+
+**Authorization:**
+- ✅ Tất cả endpoints yêu cầu JWT token
+- ✅ User chỉ có thể cập nhật profile của chính mình
+- ✅ Backend verify token với `get_current_user()` dependency
+
+---
+
+#### 9.5.6 UI/UX Features
+
+**Profile Modal:**
+- Avatar hiển thị lớn (150px)
+- Thông tin user rõ ràng, dễ đọc
+- Buttons "Edit Profile" và "Change Password" nổi bật
+
+**Edit Profile Modal:**
+- Preview avatar real-time khi upload
+- Input field cho Full Name với giá trị hiện tại
+- Button "Change Avatar" trigger file input
+- Success/Error messages rõ ràng
+
+**Change Password Modal:**
+- 3 input fields: Current, New, Confirm
+- Password visibility toggle (show/hide)
+- Validation messages inline
+- Disable submit button khi đang xử lý
+
+**Responsive Design:**
+- Modal center screen trên mọi kích thước màn hình
+- Touch-friendly buttons (min 44px height)
+- Proper spacing và typography
+
+---
+
 ## 📚 PHỤ LỤC
 
 ### Database Schema Summary
@@ -1207,6 +1583,8 @@ Authentication:
 Users:
   GET    /api/users              # Get all users
   GET    /api/users/{id}         # Get user by ID
+  PUT    /api/users/me           # Update current user profile (full_name, avatar_url)
+  POST   /api/users/me/change-password  # Change current user password
 
 Rooms (Channels):
   GET    /api/rooms              # Get all rooms
@@ -1259,6 +1637,7 @@ user_left_room    - User rời room (user_id, username, room_id)
 - ✅ **Unread Badge**: Đếm và hiển thị số tin nhắn chưa đọc cho room & private chat
 - ✅ **Typing Indicator**: Hiển thị real-time khi user đang gõ tin nhắn
 - ✅ **Read Receipts**: Xác nhận đã xem tin nhắn với ✓ (sent) và ✓✓ Seen (màu xanh)
+- ✅ **User Profile Settings**: Quản lý hồ sơ cá nhân (đổi tên, avatar, password)
 - ✅ Auto clear badge khi tương tác với chat (click, focus, send)
 - ✅ Database migration: Thêm bảng `message_reads` cho read receipts
 
