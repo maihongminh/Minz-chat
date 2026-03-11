@@ -1,7 +1,16 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean, Table
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from ..core.database import Base
+
+# Association table for message read receipts
+message_reads = Table(
+    'message_reads',
+    Base.metadata,
+    Column('message_id', Integer, ForeignKey('messages.id'), primary_key=True),
+    Column('user_id', Integer, ForeignKey('users.id'), primary_key=True),
+    Column('read_at', DateTime, default=datetime.utcnow)
+)
 
 class Message(Base):
     __tablename__ = "messages"
@@ -19,3 +28,4 @@ class Message(Base):
     # Relationships
     sender = relationship("User", foreign_keys=[sender_id], back_populates="sent_messages")
     room = relationship("Room", back_populates="messages")
+    read_by = relationship("User", secondary=message_reads, backref="read_messages")

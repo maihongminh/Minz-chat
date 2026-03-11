@@ -15,7 +15,7 @@ let isInitialized = false
 function Chat() {
   const navigate = useNavigate()
   const { token, user, logout } = useAuthStore()
-  const { setWs, setRooms, setOnlineUsers, addMessage, updateUserStatus, setMessages, currentRoom, currentPrivateChat, incrementUnreadRoom, incrementUnreadPrivateChat } = useChatStore()
+  const { setWs, setRooms, setOnlineUsers, addMessage, updateUserStatus, setMessages, currentRoom, currentPrivateChat, incrementUnreadRoom, incrementUnreadPrivateChat, setTyping, updateMessageReadReceipt, setMessageReadReceipts } = useChatStore()
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -125,6 +125,14 @@ function Chat() {
       
       case 'typing':
         // Handle typing indicator
+        if (data.user_id !== user?.id) {
+          setTyping(data.user_id, data.is_typing, data.room_id)
+        }
+        break
+      
+      case 'message_read':
+        // Handle read receipt
+        updateMessageReadReceipt(data.message_id, data.user_id)
         break
       
       default:
@@ -151,6 +159,15 @@ function Chat() {
     try {
       const response = await messagesAPI.getRoomMessages(roomId)
       setMessages(response.data)
+      
+      // Extract and store read receipts
+      const receipts = {}
+      response.data.forEach(msg => {
+        if (msg.read_by && msg.read_by.length > 0) {
+          receipts[msg.id] = msg.read_by
+        }
+      })
+      setMessageReadReceipts(receipts)
     } catch (error) {
       console.error('Failed to load room messages:', error)
     }
@@ -160,6 +177,15 @@ function Chat() {
     try {
       const response = await messagesAPI.getPrivateMessages(userId)
       setMessages(response.data)
+      
+      // Extract and store read receipts
+      const receipts = {}
+      response.data.forEach(msg => {
+        if (msg.read_by && msg.read_by.length > 0) {
+          receipts[msg.id] = msg.read_by
+        }
+      })
+      setMessageReadReceipts(receipts)
     } catch (error) {
       console.error('Failed to load private messages:', error)
     }

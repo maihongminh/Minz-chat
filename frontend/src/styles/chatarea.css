@@ -294,3 +294,43 @@
   color: var(--text-muted);
   cursor: not-allowed;
 }
+
+/* Typing Indicator */
+.typing-indicator {
+  padding: 8px 20px;
+  font-style: italic;
+  color: var(--text-muted);
+  font-size: 13px;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+}
+
+.typing-text {
+  display: inline-block;
+  animation: fadeInOut 1.5s infinite;
+}
+
+@keyframes fadeInOut {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+/* Read Receipts */
+.read-receipt {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 11px;
+  vertical-align: middle;
+}
+
+.seen-indicator {
+  color: #00a8ff;
+  font-weight: 600;
+}
+
+.sent-indicator {
+  color: var(--text-muted);
+}

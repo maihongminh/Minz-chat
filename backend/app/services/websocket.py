@@ -3,8 +3,10 @@ from typing import Dict, List, Set
 from datetime import datetime
 import json
 from sqlalchemy.orm import Session
+from sqlalchemy import and_
 
 from ..models import User, Message
+from ..models.message import message_reads
 from ..core import decode_access_token
 
 class ConnectionManager:
@@ -217,3 +219,72 @@ async def handle_websocket_message(data: dict, user: User, db: Session):
             await manager.send_room_message(typing_data, room_id)
         elif receiver_id:
             await manager.send_personal_message(typing_data, receiver_id)
+    
+    elif message_type == "mark_as_read":
+        message_ids = data.get("message_ids", [])
+        
+        if not message_ids:
+            return
+        
+        # Mark messages as read
+        for msg_id in message_ids:
+            message = db.query(Message).filter(Message.id == msg_id).first()
+            if message and message.sender_id != user.id:
+                # Check if already marked as read
+                existing = db.execute(
+                    message_reads.select().where(
+                        and_(
+                            message_reads.c.message_id == msg_id,
+                            message_reads.c.user_id == user.id
+                        )
+                    )
+                ).first()
+                
+                if not existing:
+                    # Insert read receipt
+                    db.execute(
+                        message_reads.insert().values(
+                            message_id=msg_id,
+                            user_id=user.id,
+                            read_at=datetime.utcnow()
+                        )
+                    )
+        
+        db.commit()
+        
+        # Get read receipt info for each message
+        read_receipts = []
+        for msg_id in message_ids:
+            message = db.query(Message).filter(Message.id == msg_id).first()
+            if message:
+                # Get all users who read this message
+                read_by_users = db.execute(
+                    message_reads.select().where(message_reads.c.message_id == msg_id)
+                ).fetchall()
+                
+                read_by_ids = [r.user_id for r in read_by_users]
+                
+                read_receipts.append({
+                    "message_id": msg_id,
+                    "read_by": read_by_ids
+                })
+        
+        # Send read receipt to message sender
+        for msg_id in message_ids:
+            message = db.query(Message).filter(Message.id == msg_id).first()
+            if message:
+                receipt_data = {
+                    "type": "message_read",
+                    "message_id": msg_id,
+                    "user_id": user.id,
+                    "username": user.username,
+                    "room_id": message.room_id,
+                    "read_at": datetime.utcnow().isoformat()
+                }
+                
+                # Send to message sender
+                await manager.send_personal_message(receipt_data, message.sender_id)
+                
+                # Also send to room members if it's a room message
+                if message.room_id:
+                    await manager.send_room_message(receipt_data, message.room_id)

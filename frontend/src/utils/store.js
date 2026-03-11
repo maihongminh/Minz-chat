@@ -23,6 +23,7 @@ export const useChatStore = create((set) => ({
   currentPrivateChat: null,
   onlineUsers: [],
   typingUsers: {},
+  messageReadReceipts: {}, // { messageId: [userId1, userId2, ...] }
   unreadRooms: {}, // { roomId: count }
   unreadPrivateChats: {}, // { userId: count }
   
@@ -75,4 +76,25 @@ export const useChatStore = create((set) => ({
     unreadPrivateChats[userId] = (unreadPrivateChats[userId] || 0) + 1
     return { unreadPrivateChats }
   }),
+  clearUnreadRoom: (roomId) => set((state) => {
+    const unreadRooms = { ...state.unreadRooms }
+    delete unreadRooms[roomId]
+    return { unreadRooms }
+  }),
+  clearUnreadPrivateChat: (userId) => set((state) => {
+    const unreadPrivateChats = { ...state.unreadPrivateChats }
+    delete unreadPrivateChats[userId]
+    return { unreadPrivateChats }
+  }),
+  updateMessageReadReceipt: (messageId, userId) => set((state) => {
+    const messageReadReceipts = { ...state.messageReadReceipts }
+    if (!messageReadReceipts[messageId]) {
+      messageReadReceipts[messageId] = []
+    }
+    if (!messageReadReceipts[messageId].includes(userId)) {
+      messageReadReceipts[messageId] = [...messageReadReceipts[messageId], userId]
+    }
+    return { messageReadReceipts }
+  }),
+  setMessageReadReceipts: (receipts) => set({ messageReadReceipts: receipts }),
 }))

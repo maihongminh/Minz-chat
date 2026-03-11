@@ -91,6 +91,13 @@ export class WebSocketService {
     })
   }
 
+  markAsRead(messageIds) {
+    this.send({
+      type: 'mark_as_read',
+      message_ids: messageIds,
+    })
+  }
+
   disconnect() {
     if (this.ws) {
       this.ws.close()

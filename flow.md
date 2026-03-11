@@ -1,7 +1,7 @@
 # 📊 LUỒNG XỬ LÝ DỰ ÁN FIRST-CHAT
 
 > **Tài liệu mô tả chi tiết các luồng xử lý trong ứng dụng chat real-time**  
-> Version: 2.0 | Cập nhật: 2026-03-10
+> Version: 2.1 | Cập nhật: 2026-03-11
 
 ---
 
@@ -15,6 +15,11 @@
 6. [Member Management Flow](#6-member-management-flow)
 7. [WebSocket Events](#7-websocket-events)
 8. [Error Handling](#8-error-handling)
+9. [Tính năng bổ sung](#9-tính-năng-bổ-sung)
+   - 9.1 [Unread Badge](#91-unread-badge-đếm-tin-nhắn-chưa-đọc)
+   - 9.2 [Typing Indicator](#92-typing-indicator-hiển-thị-đang-gõ)
+   - 9.3 [Read Receipts](#93-read-receipts-xác-nhận-đã-xem-tin-nhắn)
+   - 9.4 [Tích hợp các tính năng](#94-tích-hợp-các-tính-năng)
 
 ---
 
@@ -827,17 +832,365 @@ async def permission_error_handler(request, exc):
 
 ---
 
+## 9. TÍNH NĂNG BỔ SUNG
+
+### 9.1 Unread Badge (Đếm tin nhắn chưa đọc)
+
+**Mục đích:** Hiển thị số lượng tin nhắn chưa đọc cho từng channel và private chat
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant F as Frontend
+    participant W as WebSocket
+    participant S as Store
+
+    Note over F,S: User đang xem Channel A
+    
+    W->>F: new_message (Channel B)
+    F->>F: Check if message from current view
+    alt Message từ channel khác
+        F->>S: incrementUnreadRoom(channelB.id)
+        S->>S: unreadRooms[channelB.id]++
+        F->>F: Update badge UI
+    end
+    
+    U->>F: Click vào Channel B
+    F->>S: setCurrentRoom(channelB)
+    S->>S: Clear unreadRooms[channelB.id]
+    F->>F: Badge biến mất
+```
+
+**Implementation:**
+
+```javascript
+// Store state
+const useChatStore = create((set) => ({
+  unreadRooms: {},        // { roomId: count }
+  unreadPrivateChats: {}, // { userId: count }
+  
+  incrementUnreadRoom: (roomId) => set((state) => ({
+    unreadRooms: {
+      ...state.unreadRooms,
+      [roomId]: (state.unreadRooms[roomId] || 0) + 1
+    }
+  })),
+  
+  clearUnreadRoom: (roomId) => set((state) => {
+    const unreadRooms = { ...state.unreadRooms }
+    delete unreadRooms[roomId]
+    return { unreadRooms }
+  })
+}))
+
+// Auto clear badge khi:
+// 1. Click vào channel/user
+// 2. Click vào chat area
+// 3. Focus vào message input
+// 4. Gửi tin nhắn
+```
+
+**UI Display:**
+```jsx
+<div className="channel-item">
+  <span>{channel.name}</span>
+  {unreadCount > 0 && (
+    <span className="unread-badge">{unreadCount}</span>
+  )}
+</div>
+```
+
+### 9.2 Typing Indicator (Hiển thị đang gõ)
+
+**Mục đích:** Hiển thị khi user đang gõ tin nhắn trong real-time
+
+```mermaid
+sequenceDiagram
+    participant A as User A
+    participant FA as Frontend A
+    participant W as WebSocket Server
+    participant FB as Frontend B
+    participant B as User B
+
+    A->>FA: Bắt đầu gõ tin nhắn
+    FA->>FA: Check isTyping flag
+    FA->>W: emit('typing', { is_typing: true, room_id })
+    W->>FB: broadcast('typing', { user_id: A, username: 'User A' })
+    FB->>FB: Store typing state
+    FB->>B: Hiển thị "User A is typing..."
+    
+    Note over A,FA: 2 giây không gõ
+    FA->>FA: Timeout trigger
+    FA->>W: emit('typing', { is_typing: false, room_id })
+    W->>FB: broadcast('typing', { user_id: A, is_typing: false })
+    FB->>FB: Clear typing state
+    FB->>B: Ẩn typing indicator
+```
+
+**WebSocket Events:**
+
+| Event | Direction | Payload | Description |
+|-------|-----------|---------|-------------|
+| `typing` | C → S | `{ is_typing, room_id?, receiver_id? }` | Gửi trạng thái typing |
+| `typing` | S → C | `{ user_id, username, is_typing, room_id?, receiver_id? }` | Nhận trạng thái typing |
+
+**Backend Handler:**
+```python
+@socketio.on('typing')
+def handle_typing(data):
+    room_id = data.get('room_id')
+    receiver_id = data.get('receiver_id')
+    is_typing = data.get('is_typing', False)
+    
+    typing_data = {
+        'user_id': session['user_id'],
+        'username': current_user.username,
+        'is_typing': is_typing,
+        'room_id': room_id,
+        'receiver_id': receiver_id
+    }
+    
+    if room_id:
+        # Broadcast to room
+        emit('typing', typing_data, room=f'room_{room_id}', include_self=False)
+    elif receiver_id:
+        # Send to specific user
+        emit('typing', typing_data, room=f'user_{receiver_id}')
+```
+
+**Frontend Implementation:**
+```javascript
+const [isTyping, setIsTyping] = useState(false)
+const typingTimeoutRef = useRef(null)
+
+const handleInputChange = (e) => {
+  setMessageInput(e.target.value)
+  
+  if (!isTyping) {
+    setIsTyping(true)
+    ws.sendTyping(true, currentRoom?.id, currentPrivateChat?.id)
+  }
+  
+  // Clear previous timeout
+  clearTimeout(typingTimeoutRef.current)
+  
+  // Auto stop after 2 seconds
+  typingTimeoutRef.current = setTimeout(() => {
+    setIsTyping(false)
+    ws.sendTyping(false, currentRoom?.id, currentPrivateChat?.id)
+  }, 2000)
+}
+
+// UI - Hiển thị ngay trên message input
+{typingIndicator && (
+  <div className="typing-indicator">
+    <span className="typing-text">{typingIndicator}</span>
+  </div>
+)}
+```
+
+### 9.3 Read Receipts (Xác nhận đã xem tin nhắn)
+
+**Mục đích:** Hiển thị ai đã xem tin nhắn (✓ sent, ✓✓ seen)
+
+```mermaid
+sequenceDiagram
+    participant A as User A
+    participant FA as Frontend A
+    participant W as WebSocket
+    participant D as Database
+    participant FB as Frontend B
+    participant B as User B
+
+    A->>FA: Gửi tin nhắn
+    FA->>W: send_message
+    W->>D: INSERT message
+    D-->>W: message_id: 123
+    W->>FA: new_message (id: 123)
+    FA->>FA: Hiển thị ✓ (sent)
+    W->>FB: new_message (id: 123)
+    
+    B->>FB: Mở chat và xem tin nhắn
+    FB->>FB: Delay 500ms
+    FB->>W: mark_as_read([123])
+    W->>D: INSERT INTO message_reads
+    D-->>W: Success
+    W->>FA: message_read (message_id: 123, user_id: B)
+    FA->>FA: Hiển thị ✓✓ Seen (màu xanh)
+```
+
+**Database Schema:**
+
+```sql
+CREATE TABLE message_reads (
+    message_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    read_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (message_id, user_id),
+    FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_message_reads_message_id ON message_reads(message_id);
+CREATE INDEX idx_message_reads_user_id ON message_reads(user_id);
+```
+
+**WebSocket Events:**
+
+| Event | Direction | Payload | Description |
+|-------|-----------|---------|-------------|
+| `mark_as_read` | C → S | `{ message_ids: [123, 124] }` | Đánh dấu đã đọc |
+| `message_read` | S → C | `{ message_id, user_id, username, read_at }` | Thông báo đã đọc |
+
+**Backend Handler:**
+```python
+@socketio.on('mark_as_read')
+def handle_mark_as_read(data):
+    message_ids = data.get('message_ids', [])
+    user_id = session['user_id']
+    
+    for msg_id in message_ids:
+        message = Message.query.get(msg_id)
+        if message and message.sender_id != user_id:
+            # Check if already marked
+            existing = db.session.query(message_reads).filter_by(
+                message_id=msg_id,
+                user_id=user_id
+            ).first()
+            
+            if not existing:
+                # Insert read receipt
+                db.session.execute(
+                    message_reads.insert().values(
+                        message_id=msg_id,
+                        user_id=user_id
+                    )
+                )
+                db.session.commit()
+                
+                # Notify sender
+                receipt_data = {
+                    'message_id': msg_id,
+                    'user_id': user_id,
+                    'username': current_user.username,
+                    'read_at': datetime.utcnow().isoformat()
+                }
+                
+                emit('message_read', receipt_data, 
+                     room=f'user_{message.sender_id}')
+                
+                # Also broadcast to room if room message
+                if message.room_id:
+                    emit('message_read', receipt_data,
+                         room=f'room_{message.room_id}')
+```
+
+**API Response (khi load messages):**
+```json
+{
+  "id": 123,
+  "content": "Hello!",
+  "sender_id": 1,
+  "sender_username": "john_doe",
+  "room_id": 5,
+  "created_at": "2026-03-11T10:00:00Z",
+  "read_by": [2, 3, 5]  // Array of user IDs who read this message
+}
+```
+
+**Frontend Display:**
+```javascript
+// Hiển thị read receipt
+const ReadReceipt = ({ message, currentUserId, readReceipts }) => {
+  if (message.sender_id !== currentUserId) return null
+  
+  const readBy = readReceipts[message.id] || []
+  const readCount = readBy.filter(id => id !== currentUserId).length
+  
+  if (readCount > 0) {
+    return <span className="seen-indicator">✓✓ Seen</span>
+  }
+  return <span className="sent-indicator">✓</span>
+}
+
+// Auto mark as read khi xem
+useEffect(() => {
+  if (!ws || !user) return
+  
+  const unreadMessageIds = filteredMessages
+    .filter(msg => msg.sender_id !== user.id)
+    .filter(msg => {
+      const readBy = messageReadReceipts[msg.id] || []
+      return !readBy.includes(user.id)
+    })
+    .map(msg => msg.id)
+  
+  if (unreadMessageIds.length > 0) {
+    const timeout = setTimeout(() => {
+      ws.markAsRead(unreadMessageIds)
+    }, 500)
+    
+    return () => clearTimeout(timeout)
+  }
+}, [filteredMessages, ws, user, messageReadReceipts])
+```
+
+**CSS Styling:**
+```css
+.read-receipt {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 11px;
+}
+
+.seen-indicator {
+  color: #00a8ff;  /* Màu xanh khi seen */
+  font-weight: 600;
+}
+
+.sent-indicator {
+  color: var(--text-muted);  /* Màu xám khi chỉ gửi */
+}
+```
+
+### 9.4 Tích hợp các tính năng
+
+**Luồng hoàn chỉnh khi gửi và nhận tin nhắn:**
+
+1. **User A gửi tin nhắn:**
+   - Frontend hiển thị optimistic UI với ✓
+   - WebSocket gửi message đến server
+   - Server lưu DB và broadcast
+
+2. **User B (đang ở channel khác) nhận tin:**
+   - Badge tăng lên +1
+   - Không mark as read (chưa xem)
+
+3. **User B click vào channel:**
+   - Badge tự động clear
+   - Load messages với read_by array
+   - Sau 500ms auto gửi mark_as_read
+
+4. **User B đang gõ phản hồi:**
+   - User A thấy "User B is typing..."
+   - Sau 2s không gõ → typing indicator biến mất
+
+5. **User B gửi tin phản hồi:**
+   - User A nhận message mới
+   - User A's message hiển thị ✓✓ Seen (màu xanh)
+
+---
+
 ## 📚 PHỤ LỤC
 
 ### Database Schema Summary
 
 ```sql
 users (id, email*, username*, display_name, hashed_password, created_at)
-servers (id, name, owner_id→users, invite_code*, created_at)
-channels (id, name, server_id→servers, type, created_at)
-messages (id, content, user_id→users, channel_id→channels, type, created_at)
-server_members (id, user_id→users, server_id→servers, role, joined_at)
-  UNIQUE(user_id, server_id)
+rooms (id, name, description, created_at)
+messages (id, content, sender_id→users, room_id→rooms, receiver_id→users, is_private, created_at)
+message_reads (message_id→messages, user_id→users, read_at)
+  PRIMARY KEY (message_id, user_id)
 
 * = UNIQUE constraint
 → = FOREIGN KEY
@@ -851,28 +1204,48 @@ Authentication:
   POST   /api/auth/login
   GET    /api/auth/me
 
-Servers:
-  GET    /api/servers
-  POST   /api/servers
-  GET    /api/servers/{id}
-  PUT    /api/servers/{id}
-  DELETE /api/servers/{id}
-  POST   /api/servers/join
-  GET    /api/servers/{id}/members
-  DELETE /api/servers/{id}/members/{user_id}
-  DELETE /api/servers/{id}/leave
+Users:
+  GET    /api/users              # Get all users
+  GET    /api/users/{id}         # Get user by ID
 
-Channels:
-  POST   /api/channels
-  GET    /api/channels/{id}
-  PUT    /api/channels/{id}
-  DELETE /api/channels/{id}
-  GET    /api/channels/{id}/messages
+Rooms (Channels):
+  GET    /api/rooms              # Get all rooms
+  POST   /api/rooms              # Create new room (admin only)
+  GET    /api/rooms/{id}         # Get room details
+  PUT    /api/rooms/{id}         # Update room (admin only)
+  DELETE /api/rooms/{id}         # Delete room (admin only)
 
 Messages:
-  GET    /api/messages/{id}
-  PUT    /api/messages/{id}
-  DELETE /api/messages/{id}
+  POST   /api/messages           # Send message (via WebSocket preferred)
+  GET    /api/messages/room/{room_id}        # Get room messages (with read_by)
+  GET    /api/messages/private/{user_id}     # Get private messages (with read_by)
+
+WebSocket:
+  WS     /api/ws?token={jwt_token}  # WebSocket connection
+```
+
+### WebSocket Events Summary
+
+**Client → Server:**
+```
+connect           - Kết nối WebSocket với JWT token
+chat_message      - Gửi tin nhắn (room hoặc private)
+join_room         - Join vào room để nhận messages
+leave_room        - Rời khỏi room
+typing            - Gửi trạng thái typing (is_typing, room_id?, receiver_id?)
+mark_as_read      - Đánh dấu messages đã đọc (message_ids: [])
+```
+
+**Server → Client:**
+```
+online_users      - Danh sách user IDs đang online
+user_status       - Thay đổi online/offline status (user_id, is_online)
+chat_message      - Tin nhắn mới (id, content, sender, room_id?, receiver_id?)
+typing            - User đang gõ (user_id, username, is_typing, room_id?, receiver_id?)
+message_read      - Tin nhắn đã được đọc (message_id, user_id, username, read_at)
+room_deleted      - Room bị xóa (room_id, room_name)
+user_joined_room  - User join room (user_id, username, room_id)
+user_left_room    - User rời room (user_id, username, room_id)
 ```
 
 ---
@@ -881,6 +1254,13 @@ Messages:
 - Tài liệu này mô tả luồng xử lý ở mức logic, không phải implementation chi tiết
 - Tham khảo source code để biết implementation cụ thể
 - WebSocket events có thể được mở rộng thêm tùy theo tính năng
+
+**🆕 Tính năng mới (v2.1 - 2026-03-11):**
+- ✅ **Unread Badge**: Đếm và hiển thị số tin nhắn chưa đọc cho room & private chat
+- ✅ **Typing Indicator**: Hiển thị real-time khi user đang gõ tin nhắn
+- ✅ **Read Receipts**: Xác nhận đã xem tin nhắn với ✓ (sent) và ✓✓ Seen (màu xanh)
+- ✅ Auto clear badge khi tương tác với chat (click, focus, send)
+- ✅ Database migration: Thêm bảng `message_reads` cho read receipts
 
 **🔗 Tài liệu liên quan:**
 - [README.md](README.md) - Hướng dẫn cài đặt và chạy

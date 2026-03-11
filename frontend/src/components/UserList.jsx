@@ -5,11 +5,14 @@ import '../styles/userlist.css'
 
 function UserList({ users }) {
   const { user: currentUser } = useAuthStore()
-  const { onlineUsers, currentPrivateChat, setCurrentPrivateChat, ws, setMessages } = useChatStore()
+  const { onlineUsers, currentPrivateChat, setCurrentPrivateChat, ws, setMessages, unreadPrivateChats } = useChatStore()
 
   const handleUserClick = async (user) => {
+    // Only clear messages if switching to a different user
+    if (currentPrivateChat?.id !== user.id) {
+      setMessages([])
+    }
     setCurrentPrivateChat(user)
-    setMessages([])
     
     // Load private messages will be handled by Chat.jsx useEffect
   }
@@ -38,26 +41,34 @@ function UserList({ users }) {
             <div className="section-title">ONLINE — {onlineCount}</div>
             {sortedUsers
               .filter(u => onlineUsers.includes(u.id))
-              .map(user => (
-                <div
-                  key={user.id}
-                  className={`user-item ${currentPrivateChat?.id === user.id ? 'active' : ''} ${user.id === currentUser?.id ? 'current' : ''}`}
-                  onClick={() => user.id !== currentUser?.id && handleUserClick(user)}
-                >
-                  <div className="user-avatar-container">
-                    {user.avatar_url ? (
-                      <img src={user.avatar_url} alt="" className="user-avatar-small" />
-                    ) : (
-                      <FaUserCircle className="user-avatar-default-small" />
+              .map(user => {
+                const unreadCount = unreadPrivateChats[user.id] || 0
+                const hasUnread = unreadCount > 0
+                
+                return (
+                  <div
+                    key={user.id}
+                    className={`user-item ${currentPrivateChat?.id === user.id ? 'active' : ''} ${user.id === currentUser?.id ? 'current' : ''} ${hasUnread ? 'has-unread' : ''}`}
+                    onClick={() => user.id !== currentUser?.id && handleUserClick(user)}
+                  >
+                    <div className="user-avatar-container">
+                      {user.avatar_url ? (
+                        <img src={user.avatar_url} alt="" className="user-avatar-small" />
+                      ) : (
+                        <FaUserCircle className="user-avatar-default-small" />
+                      )}
+                      <FaCircle className="status-indicator online" />
+                    </div>
+                    <div className="user-name">
+                      {user.username}
+                      {user.id === currentUser?.id && <span className="you-badge"> (You)</span>}
+                    </div>
+                    {hasUnread && user.id !== currentUser?.id && (
+                      <span className="unread-badge">{unreadCount}</span>
                     )}
-                    <FaCircle className="status-indicator online" />
                   </div>
-                  <div className="user-name">
-                    {user.username}
-                    {user.id === currentUser?.id && <span className="you-badge"> (You)</span>}
-                  </div>
-                </div>
-              ))}
+                )
+              })}
           </div>
         )}
 
@@ -66,23 +77,31 @@ function UserList({ users }) {
             <div className="section-title">OFFLINE — {offlineCount}</div>
             {sortedUsers
               .filter(u => !onlineUsers.includes(u.id))
-              .map(user => (
-                <div
-                  key={user.id}
-                  className={`user-item ${currentPrivateChat?.id === user.id ? 'active' : ''}`}
-                  onClick={() => handleUserClick(user)}
-                >
-                  <div className="user-avatar-container">
-                    {user.avatar_url ? (
-                      <img src={user.avatar_url} alt="" className="user-avatar-small" />
-                    ) : (
-                      <FaUserCircle className="user-avatar-default-small" />
+              .map(user => {
+                const unreadCount = unreadPrivateChats[user.id] || 0
+                const hasUnread = unreadCount > 0
+                
+                return (
+                  <div
+                    key={user.id}
+                    className={`user-item ${currentPrivateChat?.id === user.id ? 'active' : ''} ${hasUnread ? 'has-unread' : ''}`}
+                    onClick={() => handleUserClick(user)}
+                  >
+                    <div className="user-avatar-container">
+                      {user.avatar_url ? (
+                        <img src={user.avatar_url} alt="" className="user-avatar-small" />
+                      ) : (
+                        <FaUserCircle className="user-avatar-default-small" />
+                      )}
+                      <FaCircle className="status-indicator offline" />
+                    </div>
+                    <div className="user-name">{user.username}</div>
+                    {hasUnread && (
+                      <span className="unread-badge">{unreadCount}</span>
                     )}
-                    <FaCircle className="status-indicator offline" />
                   </div>
-                  <div className="user-name">{user.username}</div>
-                </div>
-              ))}
+                )
+              })}
           </div>
         )}
       </div>

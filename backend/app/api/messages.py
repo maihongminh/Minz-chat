@@ -4,6 +4,7 @@ from typing import List, Optional
 
 from ..core import get_db
 from ..models import User, Message, Room
+from ..models.message import message_reads
 from ..schemas import MessageCreate, MessageResponse, MessageWithSender
 from .auth import get_current_user
 
@@ -52,14 +53,22 @@ async def get_room_messages(
         Message.is_deleted == False
     ).order_by(Message.created_at.desc()).limit(limit).offset(offset).all()
     
-    # Add sender info
+    # Add sender info and read receipts
     result = []
     for msg in messages:
         sender = db.query(User).filter(User.id == msg.sender_id).first()
+        
+        # Get read receipts for this message
+        read_by_users = db.execute(
+            message_reads.select().where(message_reads.c.message_id == msg.id)
+        ).fetchall()
+        read_by_ids = [r.user_id for r in read_by_users]
+        
         result.append({
             **msg.__dict__,
             "sender_username": sender.username if sender else "Unknown",
-            "sender_avatar": sender.avatar_url if sender else None
+            "sender_avatar": sender.avatar_url if sender else None,
+            "read_by": read_by_ids
         })
     
     return list(reversed(result))
@@ -82,14 +91,22 @@ async def get_private_messages(
         )
     ).order_by(Message.created_at.desc()).limit(limit).offset(offset).all()
     
-    # Add sender info
+    # Add sender info and read receipts
     result = []
     for msg in messages:
         sender = db.query(User).filter(User.id == msg.sender_id).first()
+        
+        # Get read receipts for this message
+        read_by_users = db.execute(
+            message_reads.select().where(message_reads.c.message_id == msg.id)
+        ).fetchall()
+        read_by_ids = [r.user_id for r in read_by_users]
+        
         result.append({
             **msg.__dict__,
             "sender_username": sender.username if sender else "Unknown",
-            "sender_avatar": sender.avatar_url if sender else None
+            "sender_avatar": sender.avatar_url if sender else None,
+            "read_by": read_by_ids
         })
     
     return list(reversed(result))
