@@ -4,6 +4,9 @@ from datetime import datetime
 
 class MessageBase(BaseModel):
     content: str
+    file_url: Optional[str] = None
+    file_name: Optional[str] = None
+    file_type: Optional[str] = None
 
 class MessageCreate(MessageBase):
     room_id: Optional[int] = None
@@ -18,6 +21,9 @@ class MessageResponse(MessageBase):
     created_at: datetime
     is_edited: bool
     is_deleted: bool
+    file_url: Optional[str] = None
+    file_name: Optional[str] = None
+    file_type: Optional[str] = None
     
     class Config:
         from_attributes = True

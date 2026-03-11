@@ -126,11 +126,17 @@ async def handle_websocket_message(data: dict, user: User, db: Session):
     
     if message_type == "chat_message":
         # Save message to database
-        content = data.get("content")
+        content = data.get("content", "")
         room_id = data.get("room_id")
         receiver_id = data.get("receiver_id")
         
-        if not content:
+        # File attachment data
+        file_url = data.get("file_url")
+        file_name = data.get("file_name")
+        file_type = data.get("file_type")
+        
+        # Message must have either content or file attachment
+        if not content and not file_url:
             return
         
         is_private = receiver_id is not None
@@ -140,7 +146,10 @@ async def handle_websocket_message(data: dict, user: User, db: Session):
             sender_id=user.id,
             room_id=room_id,
             receiver_id=receiver_id,
-            is_private=is_private
+            is_private=is_private,
+            file_url=file_url,
+            file_name=file_name,
+            file_type=file_type
         )
         
         db.add(new_message)
@@ -159,7 +168,10 @@ async def handle_websocket_message(data: dict, user: User, db: Session):
             "receiver_id": receiver_id,
             "is_private": is_private,
             "created_at": new_message.created_at.isoformat(),
-            "is_edited": False
+            "is_edited": False,
+            "file_url": file_url,
+            "file_name": file_name,
+            "file_type": file_type
         }
         
         # Send to appropriate recipients

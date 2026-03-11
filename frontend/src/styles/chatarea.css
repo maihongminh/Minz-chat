@@ -109,6 +109,7 @@
 
 .message.own-message .message-content {
   text-align: right;
+  align-items: flex-end;
 }
 
 .message.own-message .message-meta {
@@ -136,6 +137,7 @@
   display: flex;
   gap: 16px;
   max-width: 80%;
+  align-items: flex-start;
 }
 
 .message-avatar {
@@ -153,6 +155,9 @@
 .message-content {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .message-meta {
@@ -193,7 +198,7 @@
 }
 
 .message.other-message .message-compact {
-  /* No padding - align naturally with first message */
+  /* No extra padding - messages flow naturally */
 }
 
 .message.own-message .message-compact {
@@ -359,4 +364,177 @@
 
 .sent-indicator {
   color: var(--text-muted);
+}
+
+/* File Upload UI */
+.attach-button {
+  background: transparent;
+  color: var(--text-muted);
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 20px;
+  transition: all 0.2s;
+}
+
+.attach-button:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-normal);
+}
+
+.file-preview {
+  margin-bottom: 12px;
+  padding: 12px;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+}
+
+.image-preview {
+  position: relative;
+  display: inline-block;
+}
+
+.image-preview img {
+  max-width: 200px;
+  max-height: 200px;
+  border-radius: 8px;
+  display: block;
+}
+
+.file-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-normal);
+}
+
+.file-info .file-icon {
+  font-size: 24px;
+  color: var(--accent-primary);
+}
+
+.file-name {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.file-size {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.remove-file-btn {
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin-left: auto;
+  transition: background 0.2s;
+}
+
+.image-preview .remove-file-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+}
+
+.remove-file-btn:hover {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+/* Message Attachments */
+.message-attachment {
+  margin-top: 8px;
+}
+
+.message-image {
+  max-width: 400px;
+  max-height: 300px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  display: block;
+}
+
+.message-image:hover {
+  opacity: 0.9;
+}
+
+.message-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg-modifier-hover);
+  border-radius: 8px;
+  color: var(--text-normal);
+  text-decoration: none;
+  transition: background 0.2s;
+}
+
+.message-file:hover {
+  background: var(--bg-modifier-selected);
+}
+
+.message-file .file-icon {
+  font-size: 20px;
+  color: var(--accent-primary);
+}
+
+.message-file span {
+  font-size: 14px;
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Message with attachment wrapper */
+.message-with-attachment {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--bg-secondary);
+  padding: 8px 12px;
+  border-radius: 12px;
+  max-width: 450px;
+}
+
+.message.own-message .message-with-attachment {
+  background: var(--accent-primary);
+  color: white;
+}
+
+.attachment-text {
+  font-size: 15px;
+  line-height: 1.375;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.message-with-attachment .message-attachment {
+  margin-top: 0;
+}
+
+/* Hide avatar for own messages */
+.message.own-message .message-avatar,
+.message.own-message .message-avatar-default {
+  display: none;
+}
+
+/* Adjust spacing for own-message header without avatar */
+.message.own-message .message-header {
+  max-width: 80%;
+  margin-left: auto;
 }

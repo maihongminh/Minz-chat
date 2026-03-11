@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { FaHashtag, FaUserCircle, FaPaperPlane } from 'react-icons/fa'
+import { FaHashtag, FaUserCircle, FaPaperPlane, FaPaperclip, FaTimes, FaFile, FaImage } from 'react-icons/fa'
 import { useChatStore, useAuthStore } from '../utils/store'
 import { format } from 'date-fns'
 import '../styles/chatarea.css'
@@ -9,9 +9,12 @@ function ChatArea() {
   const { currentRoom, currentPrivateChat, messages, ws, clearUnreadRoom, clearUnreadPrivateChat, typingUsers, messageReadReceipts } = useChatStore()
   const [messageInput, setMessageInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
+  const [selectedFile, setSelectedFile] = useState(null)
+  const [filePreview, setFilePreview] = useState(null)
   const messagesEndRef = useRef(null)
   const typingTimeoutRef = useRef(null)
   const textareaRef = useRef(null)
+  const fileInputRef = useRef(null)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -102,10 +105,43 @@ function ChatArea() {
     }, 2000)
   }
 
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size must be less than 5MB')
+      return
+    }
+    
+    setSelectedFile(file)
+    
+    // Create preview for images
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setFilePreview(reader.result)
+      }
+      reader.readAsDataURL(file)
+    } else {
+      setFilePreview(null)
+    }
+  }
+  
+  const handleRemoveFile = () => {
+    setSelectedFile(null)
+    setFilePreview(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
   const handleSendMessage = (e) => {
     e.preventDefault()
     
-    if (!messageInput.trim() || !ws) return
+    if (!messageInput.trim() && !selectedFile) return
+    if (!ws) return
     
     // Stop typing indicator
     if (isTyping) {
@@ -125,13 +161,35 @@ function ChatArea() {
     // Clear badge when sending message
     handleClearUnread()
     
-    if (currentRoom) {
-      ws.sendMessage(messageInput, currentRoom.id, null)
-    } else if (currentPrivateChat) {
-      ws.sendMessage(messageInput, null, currentPrivateChat.id)
+    // Prepare file data if file is selected
+    let fileData = null
+    if (selectedFile) {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        const fileUrl = reader.result // base64 encoded
+        
+        if (currentRoom) {
+          ws.sendMessage(messageInput || '', currentRoom.id, null, fileUrl, selectedFile.name, selectedFile.type)
+        } else if (currentPrivateChat) {
+          ws.sendMessage(messageInput || '', null, currentPrivateChat.id, fileUrl, selectedFile.name, selectedFile.type)
+        }
+      }
+      reader.readAsDataURL(selectedFile)
+    } else {
+      // No file, just send text message
+      if (currentRoom) {
+        ws.sendMessage(messageInput, currentRoom.id, null)
+      } else if (currentPrivateChat) {
+        ws.sendMessage(messageInput, null, currentPrivateChat.id)
+      }
     }
 
     setMessageInput('')
+    setSelectedFile(null)
+    setFilePreview(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
     
     // Reset textarea height after sending
     if (textareaRef.current) {
@@ -245,7 +303,10 @@ function ChatArea() {
             </div>
           ) : (
             filteredMessages.map((msg, index) => {
-              const showAvatar = index === 0 || filteredMessages[index - 1].sender_id !== msg.sender_id
+              // Show avatar for first message, different sender, or if message has file attachment
+              const showAvatar = index === 0 || 
+                                 filteredMessages[index - 1].sender_id !== msg.sender_id ||
+                                 !!msg.file_url
               const isCurrentUser = msg.sender_id === user.id
               
               // Check if this is the last message from current user in a group
@@ -299,9 +360,42 @@ function ChatArea() {
                             </span>
                             <span className="message-time">{formatTime(msg.created_at)}</span>
                           </div>
-                          <div className="message-text">
-                            {msg.content}
-                          </div>
+                          {msg.file_url ? (
+                            // Message with attachment - wrap text and file together
+                            <div className="message-with-attachment">
+                              {msg.content && (
+                                <div className="attachment-text">
+                                  {msg.content}
+                                </div>
+                              )}
+                              <div className="message-attachment">
+                                {msg.file_type?.startsWith('image/') ? (
+                                  <img 
+                                    src={msg.file_url} 
+                                    alt={msg.file_name} 
+                                    className="message-image"
+                                    onClick={() => window.open(msg.file_url, '_blank')}
+                                  />
+                                ) : (
+                                  <a 
+                                    href={msg.file_url} 
+                                    download={msg.file_name}
+                                    className="message-file"
+                                  >
+                                    <FaFile className="file-icon" />
+                                    <span>{msg.file_name}</span>
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          ) : (
+                            // Text-only message
+                            msg.content && (
+                              <div className="message-text">
+                                {msg.content}
+                              </div>
+                            )
+                          )}
                         </div>
                         {isCurrentUser && (
                           msg.sender_avatar ? (
@@ -314,9 +408,32 @@ function ChatArea() {
                     ) : (
                       <div className="message-compact">
                         <span className="message-time-compact">{formatTime(msg.created_at)}</span>
-                        <div className="message-text">
-                          {msg.content}
-                        </div>
+                        {msg.content && (
+                          <div className="message-text">
+                            {msg.content}
+                          </div>
+                        )}
+                        {msg.file_url && (
+                          <div className="message-attachment">
+                            {msg.file_type?.startsWith('image/') ? (
+                              <img 
+                                src={msg.file_url} 
+                                alt={msg.file_name} 
+                                className="message-image"
+                                onClick={() => window.open(msg.file_url, '_blank')}
+                              />
+                            ) : (
+                              <a 
+                                href={msg.file_url} 
+                                download={msg.file_name}
+                                className="message-file"
+                              >
+                                <FaFile className="file-icon" />
+                                <span>{msg.file_name}</span>
+                              </a>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -345,7 +462,43 @@ function ChatArea() {
       )}
 
       <div className="message-input-container">
+        {selectedFile && (
+          <div className="file-preview">
+            {filePreview ? (
+              <div className="image-preview">
+                <img src={filePreview} alt="Preview" />
+                <button type="button" className="remove-file-btn" onClick={handleRemoveFile}>
+                  <FaTimes />
+                </button>
+              </div>
+            ) : (
+              <div className="file-info">
+                <FaFile className="file-icon" />
+                <span className="file-name">{selectedFile.name}</span>
+                <span className="file-size">({(selectedFile.size / 1024).toFixed(1)} KB)</span>
+                <button type="button" className="remove-file-btn" onClick={handleRemoveFile}>
+                  <FaTimes />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
         <form onSubmit={handleSendMessage} className="message-input-form">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,.pdf,.doc,.docx,.txt"
+            onChange={handleFileSelect}
+            style={{ display: 'none' }}
+          />
+          <button
+            type="button"
+            className="attach-button"
+            onClick={() => fileInputRef.current?.click()}
+            title="Attach file"
+          >
+            <FaPaperclip />
+          </button>
           <textarea
             ref={textareaRef}
             className="message-input"
@@ -363,7 +516,7 @@ function ChatArea() {
           <button 
             type="submit" 
             className="send-button"
-            disabled={!messageInput.trim()}
+            disabled={!messageInput.trim() && !selectedFile}
             title="Send message (Enter)"
           >
             <FaPaperPlane />
