@@ -1,3 +1,13 @@
+# Process IDs
+*.pid
+.backend.pid
+.frontend.pid
+
+# Temporary files
+COMMIT_MESSAGE.txt
+commit_v2.sh
+UPDATE_SUMMARY.md
+
 # Python
 __pycache__/
 *.py[cod]
@@ -6,13 +16,7 @@ __pycache__/
 .Python
 venv/
 env/
-ENV/
 *.egg-info/
-dist/
-build/
-.pytest_cache/
-.coverage
-htmlcov/
 
 # Node
 node_modules/
@@ -21,12 +25,11 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 dist/
-.vite/
+build/
 
 # Environment
 .env
 .env.local
-.env.production
 
 # Database
 *.db
@@ -38,11 +41,11 @@ dist/
 *.swp
 *.swo
 *~
+
+# OS
 .DS_Store
+Thumbs.db
 
 # Logs
 *.log
 logs/
-
-# OS
-Thumbs.db

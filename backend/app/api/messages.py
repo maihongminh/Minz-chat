@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 
 from ..core import get_db
-from ..models import User, Message, Room
+from ..models import User, Message, Room, Attachment
 from ..models.message import message_reads
 from ..schemas import MessageCreate, MessageResponse, MessageWithSender
 from .auth import get_current_user
@@ -64,11 +64,27 @@ async def get_room_messages(
         ).fetchall()
         read_by_ids = [r.user_id for r in read_by_users]
         
+        # Get attachments for this message
+        attachments = db.query(Attachment).filter(Attachment.message_id == msg.id).all()
+        attachments_data = [
+            {
+                "id": att.id,
+                "message_id": att.message_id,
+                "file_url": att.file_url,
+                "file_name": att.file_name,
+                "file_type": att.file_type,
+                "file_size": att.file_size,
+                "created_at": att.created_at.isoformat()
+            }
+            for att in attachments
+        ]
+        
         result.append({
             **msg.__dict__,
             "sender_username": sender.username if sender else "Unknown",
             "sender_avatar": sender.avatar_url if sender else None,
-            "read_by": read_by_ids
+            "read_by": read_by_ids,
+            "attachments": attachments_data
         })
     
     return list(reversed(result))
@@ -102,11 +118,27 @@ async def get_private_messages(
         ).fetchall()
         read_by_ids = [r.user_id for r in read_by_users]
         
+        # Get attachments for this message
+        attachments = db.query(Attachment).filter(Attachment.message_id == msg.id).all()
+        attachments_data = [
+            {
+                "id": att.id,
+                "message_id": att.message_id,
+                "file_url": att.file_url,
+                "file_name": att.file_name,
+                "file_type": att.file_type,
+                "file_size": att.file_size,
+                "created_at": att.created_at.isoformat()
+            }
+            for att in attachments
+        ]
+        
         result.append({
             **msg.__dict__,
             "sender_username": sender.username if sender else "Unknown",
             "sender_avatar": sender.avatar_url if sender else None,
-            "read_by": read_by_ids
+            "read_by": read_by_ids,
+            "attachments": attachments_data
         })
     
     return list(reversed(result))

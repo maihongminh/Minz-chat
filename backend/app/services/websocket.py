@@ -5,7 +5,7 @@ import json
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
 
-from ..models import User, Message
+from ..models import User, Message, Attachment
 from ..models.message import message_reads
 from ..core import decode_access_token
 
@@ -130,13 +130,16 @@ async def handle_websocket_message(data: dict, user: User, db: Session):
         room_id = data.get("room_id")
         receiver_id = data.get("receiver_id")
         
-        # File attachment data
+        # File attachment data (legacy - single file)
         file_url = data.get("file_url")
         file_name = data.get("file_name")
         file_type = data.get("file_type")
         
+        # Multiple attachments data
+        attachments_data = data.get("attachments", [])
+        
         # Message must have either content or file attachment
-        if not content and not file_url:
+        if not content and not file_url and not attachments_data:
             return
         
         is_private = receiver_id is not None
@@ -156,6 +159,38 @@ async def handle_websocket_message(data: dict, user: User, db: Session):
         db.commit()
         db.refresh(new_message)
         
+        # Create attachment records for multiple files
+        attachment_objects = []
+        if attachments_data:
+            for att_data in attachments_data:
+                attachment = Attachment(
+                    message_id=new_message.id,
+                    file_url=att_data.get("file_url"),
+                    file_name=att_data.get("file_name"),
+                    file_type=att_data.get("file_type"),
+                    file_size=att_data.get("file_size")
+                )
+                db.add(attachment)
+                attachment_objects.append(attachment)
+            
+            db.commit()
+            for att in attachment_objects:
+                db.refresh(att)
+        
+        # Prepare attachments for response
+        attachments_response = [
+            {
+                "id": att.id,
+                "message_id": att.message_id,
+                "file_url": att.file_url,
+                "file_name": att.file_name,
+                "file_type": att.file_type,
+                "file_size": att.file_size,
+                "created_at": att.created_at.isoformat()
+            }
+            for att in attachment_objects
+        ]
+        
         # Prepare message to send
         message_data = {
             "type": "chat_message",
@@ -171,7 +206,8 @@ async def handle_websocket_message(data: dict, user: User, db: Session):
             "is_edited": False,
             "file_url": file_url,
             "file_name": file_name,
-            "file_type": file_type
+            "file_type": file_type,
+            "attachments": attachments_response
         }
         
         # Send to appropriate recipients

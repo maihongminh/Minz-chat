@@ -175,7 +175,27 @@ Lưu file:
 - Nhấn `Enter`
 - Nhấn `Ctrl + X` (exit)
 
-### 4.4. Khởi động Backend
+### 4.4. Chạy Database Migration (QUAN TRỌNG!)
+
+```bash
+# Vẫn ở ~/first-chat/backend (không cần cd)
+# Đảm bảo đang trong virtual environment (có (venv) ở đầu dòng)
+
+# Chạy migration để tạo bảng attachments (v2.0)
+python3 apply_migration.py
+```
+
+Bạn sẽ thấy:
+```
+Applying migration: Create attachments table...
+✓ Migration applied successfully!
+✓ Attachments table created
+✓ Index created on message_id
+```
+
+✅ Database đã có đầy đủ tables!
+
+### 4.5. Khởi động Backend
 
 ```bash
 # Vẫn ở ~/first-chat/backend (không cần cd)
@@ -198,7 +218,7 @@ INFO:     Application startup complete.
 
 ✅ Backend đang chạy!
 
-### 4.5. Kiểm tra Backend
+### 4.6. Kiểm tra Backend
 
 Mở trình duyệt và vào: http://localhost:8000
 

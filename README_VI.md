@@ -64,9 +64,13 @@ Xem chi tiết trong file **QUICKSTART.md**
 - ✅ **Private Messages** (1-1)
 - ✅ **Chat Rooms** (Public channels)
 - ✅ **Online/Offline status** realtime
-- ✅ Message history
+- ✅ Message history với pagination
 - ✅ Typing indicators
+- ✅ Read receipts
 - ✅ Timestamps
+- ✅ **Upload nhiều files** (tối đa 5 files/message) 🆕
+- ✅ Preview hình ảnh và tài liệu
+- ✅ Hiển thị attachments dạng grid
 
 ### 🛡️ Admin Panel
 - ✅ Dashboard với statistics
@@ -332,20 +336,35 @@ npm run build
 - Heroku Postgres
 - Supabase
 
+## 🎉 Cập nhật gần đây
+
+### v2.0 - Tính năng Upload Nhiều Files
+- ✅ Upload tối đa 5 files cùng lúc
+- ✅ Preview dạng grid trước khi gửi
+- ✅ Xóa từng file riêng lẻ
+- ✅ Hiển thị attachments theo grid layout
+- ✅ Hỗ trợ hình ảnh (JPEG, PNG, GIF) và tài liệu (PDF, DOC, DOCX, TXT)
+- ✅ Validation kích thước file (max 5MB/file)
+- ✅ Database được tối ưu với bảng attachments riêng
+- ✅ Tương thích ngược với single file uploads
+
 ## 🔮 Tính năng có thể mở rộng
 
-- [ ] Upload files/images
+- [x] ~~Upload files/images~~ ✅ **ĐÃ HOÀN THÀNH (v2.0)**
 - [ ] Emoji picker & reactions
 - [ ] Voice/Video calls
 - [ ] Message editing & deletion
 - [ ] Search messages
 - [ ] Notifications
-- [ ] User roles & permissions
+- [ ] User roles & permissions (Đã có phần - Admin roles)
 - [ ] Content moderation
 - [ ] Activity logs
 - [ ] Markdown support
 - [ ] Dark/Light theme toggle
 - [ ] Mobile app (React Native)
+- [ ] Cloud storage integration (S3/Cloudinary)
+- [ ] Image compression
+- [ ] Drag & drop file upload
 
 ## 📊 API Endpoints
 

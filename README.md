@@ -19,9 +19,13 @@ A modern real-time chat application built with **FastAPI** (Python) and **React*
 ✅ **Chat Features**
 - Create and join chat rooms
 - Direct messaging between users
-- Message history
+- Message history with pagination
 - User avatars
 - Timestamps
+- **Multiple file upload** (up to 5 files per message) 🆕
+- Image preview and inline display
+- Document upload and download
+- Read receipts and typing indicators
 
 ✅ **Modern UI**
 - Discord-inspired dark theme
@@ -332,18 +336,32 @@ npm run preview
 - Check redirect URIs match exactly
 - Enable required APIs in provider console
 
+## Recent Updates
+
+### v2.0 - Multiple File Upload Feature 🎉
+- ✅ Upload up to 5 files simultaneously
+- ✅ Grid preview before sending
+- ✅ Individual file removal
+- ✅ Grid layout display in messages
+- ✅ Support for images and documents (PDF, DOC, DOCX, TXT)
+- ✅ Database optimized with separate attachments table
+- ✅ Backward compatible with single file uploads
+
 ## Future Enhancements
 
-- [ ] File upload and image sharing
+- [x] ~~File upload and image sharing~~ ✅ **DONE (v2.0)**
 - [ ] Emoji picker and reactions
 - [ ] Voice and video calls
-- [ ] User roles and permissions
+- [ ] User roles and permissions (Partially done - Admin roles exist)
 - [ ] Message editing and deletion
 - [ ] Search functionality
 - [ ] Notifications
 - [ ] Mobile responsive improvements
 - [ ] Dark/Light theme toggle
 - [ ] Message formatting (markdown)
+- [ ] Cloud storage integration (S3/Cloudinary)
+- [ ] Image compression
+- [ ] Drag & drop file upload
 
 ## License
 

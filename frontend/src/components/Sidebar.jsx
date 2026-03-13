@@ -53,7 +53,7 @@ function Sidebar({ onLogout }) {
     }
   }
 
-  const handleRoomClick = (room) => {
+  const handleRoomClick = async (room) => {
     // Check if room is private and user is not admin
     if (room.is_private && !isAdmin) {
       alert('This is a private channel. Only administrators can access it.')
@@ -61,8 +61,26 @@ function Sidebar({ onLogout }) {
     }
     
     setCurrentRoom(room)
+    
+    // Join room in database (adds to room_members)
+    try {
+      await roomsAPI.joinRoom(room.id)
+    } catch (error) {
+      console.error('Failed to join room:', error)
+      // Continue anyway - user can still view messages
+    }
+    
+    // Join WebSocket room for realtime updates
     if (ws) {
       ws.joinRoom(room.id)
+    }
+    
+    // Refresh rooms to update member_count
+    try {
+      const roomsRes = await roomsAPI.getRooms()
+      setRooms(roomsRes.data)
+    } catch (error) {
+      console.error('Failed to refresh rooms:', error)
     }
   }
 

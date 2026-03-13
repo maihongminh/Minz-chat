@@ -85,7 +85,25 @@ npm install
 yarn install
 ```
 
-### 5. Run the Application
+### 5. Run Database Migration
+
+```bash
+cd first-chat/backend
+source venv/bin/activate  # or venv\Scripts\activate on Windows
+
+# Run migration to create attachments table (v2.0)
+python3 apply_migration.py
+```
+
+You should see:
+```
+Applying migration: Create attachments table...
+✓ Migration applied successfully!
+✓ Attachments table created
+✓ Index created on message_id
+```
+
+### 6. Run the Application
 
 **Terminal 1 - Backend:**
 ```bash

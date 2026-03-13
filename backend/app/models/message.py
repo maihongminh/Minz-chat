@@ -25,7 +25,7 @@ class Message(Base):
     is_edited = Column(Boolean, default=False)
     is_deleted = Column(Boolean, default=False)
     
-    # File attachments
+    # Legacy file attachments (kept for backward compatibility)
     file_url = Column(Text, nullable=True)  # URL or base64 data for file
     file_name = Column(String(255), nullable=True)  # Original filename
     file_type = Column(String(100), nullable=True)  # MIME type (image/jpeg, application/pdf, etc.)
@@ -34,3 +34,4 @@ class Message(Base):
     sender = relationship("User", foreign_keys=[sender_id], back_populates="sent_messages")
     room = relationship("Room", back_populates="messages")
     read_by = relationship("User", secondary=message_reads, backref="read_messages")
+    attachments = relationship("Attachment", back_populates="message", cascade="all, delete-orphan")

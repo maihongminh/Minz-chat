@@ -11,6 +11,8 @@ function ChatArea() {
   const [isTyping, setIsTyping] = useState(false)
   const [selectedFile, setSelectedFile] = useState(null)
   const [filePreview, setFilePreview] = useState(null)
+  const [selectedFiles, setSelectedFiles] = useState([])
+  const [filePreviews, setFilePreviews] = useState([])
   const messagesEndRef = useRef(null)
   const typingTimeoutRef = useRef(null)
   const textareaRef = useRef(null)
@@ -106,41 +108,76 @@ function ChatArea() {
   }
 
   const handleFileSelect = (e) => {
-    const file = e.target.files[0]
-    if (!file) return
+    const files = Array.from(e.target.files)
+    if (files.length === 0) return
     
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      alert('File size must be less than 5MB')
+    // Validate total files (max 5 files)
+    if (files.length > 5) {
+      alert('You can only upload up to 5 files at once')
       return
     }
     
-    setSelectedFile(file)
-    
-    // Create preview for images
-    if (file.type.startsWith('image/')) {
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setFilePreview(reader.result)
-      }
-      reader.readAsDataURL(file)
-    } else {
-      setFilePreview(null)
+    // Validate each file size (max 5MB per file)
+    const oversizedFiles = files.filter(file => file.size > 5 * 1024 * 1024)
+    if (oversizedFiles.length > 0) {
+      alert('Each file size must be less than 5MB')
+      return
     }
+    
+    setSelectedFiles(files)
+    
+    // Create previews for images
+    const previews = []
+    let loadedCount = 0
+    
+    files.forEach((file, index) => {
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          previews[index] = { type: 'image', url: reader.result, file }
+          loadedCount++
+          if (loadedCount === files.length) {
+            setFilePreviews([...previews])
+          }
+        }
+        reader.readAsDataURL(file)
+      } else {
+        previews[index] = { type: 'file', file }
+        loadedCount++
+        if (loadedCount === files.length) {
+          setFilePreviews([...previews])
+        }
+      }
+    })
   }
   
-  const handleRemoveFile = () => {
-    setSelectedFile(null)
-    setFilePreview(null)
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''
+  const handleRemoveFile = (index = null) => {
+    if (index !== null) {
+      // Remove specific file from multiple files
+      const newFiles = selectedFiles.filter((_, i) => i !== index)
+      const newPreviews = filePreviews.filter((_, i) => i !== index)
+      setSelectedFiles(newFiles)
+      setFilePreviews(newPreviews)
+      
+      if (newFiles.length === 0 && fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    } else {
+      // Remove all files
+      setSelectedFile(null)
+      setFilePreview(null)
+      setSelectedFiles([])
+      setFilePreviews([])
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
     }
   }
 
   const handleSendMessage = (e) => {
     e.preventDefault()
     
-    if (!messageInput.trim() && !selectedFile) return
+    if (!messageInput.trim() && !selectedFile && selectedFiles.length === 0) return
     if (!ws) return
     
     // Stop typing indicator
@@ -161,9 +198,32 @@ function ChatArea() {
     // Clear badge when sending message
     handleClearUnread()
     
-    // Prepare file data if file is selected
-    let fileData = null
-    if (selectedFile) {
+    // Handle multiple files
+    if (selectedFiles.length > 0) {
+      const attachmentsPromises = selectedFiles.map(file => {
+        return new Promise((resolve) => {
+          const reader = new FileReader()
+          reader.onloadend = () => {
+            resolve({
+              file_url: reader.result,
+              file_name: file.name,
+              file_type: file.type,
+              file_size: file.size
+            })
+          }
+          reader.readAsDataURL(file)
+        })
+      })
+      
+      Promise.all(attachmentsPromises).then(attachments => {
+        if (currentRoom) {
+          ws.sendMessage(messageInput || '', currentRoom.id, null, null, null, null, attachments)
+        } else if (currentPrivateChat) {
+          ws.sendMessage(messageInput || '', null, currentPrivateChat.id, null, null, null, attachments)
+        }
+      })
+    } else if (selectedFile) {
+      // Legacy single file support
       const reader = new FileReader()
       reader.onloadend = () => {
         const fileUrl = reader.result // base64 encoded
@@ -187,6 +247,8 @@ function ChatArea() {
     setMessageInput('')
     setSelectedFile(null)
     setFilePreview(null)
+    setSelectedFiles([])
+    setFilePreviews([])
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
@@ -360,8 +422,40 @@ function ChatArea() {
                             </span>
                             <span className="message-time">{formatTime(msg.created_at)}</span>
                           </div>
-                          {msg.file_url ? (
-                            // Message with attachment - wrap text and file together
+                          {msg.attachments && msg.attachments.length > 0 ? (
+                            // Message with multiple attachments
+                            <div className="message-with-attachment">
+                              {msg.content && (
+                                <div className="attachment-text">
+                                  {msg.content}
+                                </div>
+                              )}
+                              <div className="message-attachments-grid">
+                                {msg.attachments.map((att) => (
+                                  <div key={att.id} className="message-attachment">
+                                    {att.file_type?.startsWith('image/') ? (
+                                      <img 
+                                        src={att.file_url} 
+                                        alt={att.file_name} 
+                                        className="message-image"
+                                        onClick={() => window.open(att.file_url, '_blank')}
+                                      />
+                                    ) : (
+                                      <a 
+                                        href={att.file_url} 
+                                        download={att.file_name}
+                                        className="message-file"
+                                      >
+                                        <FaFile className="file-icon" />
+                                        <span>{att.file_name}</span>
+                                      </a>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ) : msg.file_url ? (
+                            // Legacy single file attachment
                             <div className="message-with-attachment">
                               {msg.content && (
                                 <div className="attachment-text">
@@ -413,6 +507,31 @@ function ChatArea() {
                             {msg.content}
                           </div>
                         )}
+                        {msg.attachments && msg.attachments.length > 0 && (
+                          <div className="message-attachments-grid">
+                            {msg.attachments.map((att) => (
+                              <div key={att.id} className="message-attachment">
+                                {att.file_type?.startsWith('image/') ? (
+                                  <img 
+                                    src={att.file_url} 
+                                    alt={att.file_name} 
+                                    className="message-image"
+                                    onClick={() => window.open(att.file_url, '_blank')}
+                                  />
+                                ) : (
+                                  <a 
+                                    href={att.file_url} 
+                                    download={att.file_name}
+                                    className="message-file"
+                                  >
+                                    <FaFile className="file-icon" />
+                                    <span>{att.file_name}</span>
+                                  </a>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                         {msg.file_url && (
                           <div className="message-attachment">
                             {msg.file_type?.startsWith('image/') ? (
@@ -462,6 +581,31 @@ function ChatArea() {
       )}
 
       <div className="message-input-container">
+        {selectedFiles.length > 0 && (
+          <div className="files-preview-container">
+            {filePreviews.map((preview, index) => (
+              <div key={index} className="file-preview-item">
+                {preview.type === 'image' ? (
+                  <div className="image-preview-small">
+                    <img src={preview.url} alt={preview.file.name} />
+                    <button type="button" className="remove-file-btn-small" onClick={() => handleRemoveFile(index)}>
+                      <FaTimes />
+                    </button>
+                    <span className="file-name-small">{preview.file.name}</span>
+                  </div>
+                ) : (
+                  <div className="file-info-small">
+                    <FaFile className="file-icon-small" />
+                    <span className="file-name-small">{preview.file.name}</span>
+                    <button type="button" className="remove-file-btn-small" onClick={() => handleRemoveFile(index)}>
+                      <FaTimes />
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
         {selectedFile && (
           <div className="file-preview">
             {filePreview ? (
@@ -489,6 +633,7 @@ function ChatArea() {
             type="file"
             accept="image/*,.pdf,.doc,.docx,.txt"
             onChange={handleFileSelect}
+            multiple
             style={{ display: 'none' }}
           />
           <button
@@ -516,7 +661,7 @@ function ChatArea() {
           <button 
             type="submit" 
             className="send-button"
-            disabled={!messageInput.trim() && !selectedFile}
+            disabled={!messageInput.trim() && !selectedFile && selectedFiles.length === 0}
             title="Send message (Enter)"
           >
             <FaPaperPlane />

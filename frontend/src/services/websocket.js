@@ -59,7 +59,7 @@ export class WebSocketService {
     }
   }
 
-  sendMessage(content, roomId = null, receiverId = null, fileUrl = null, fileName = null, fileType = null) {
+  sendMessage(content, roomId = null, receiverId = null, fileUrl = null, fileName = null, fileType = null, attachments = []) {
     this.send({
       type: 'chat_message',
       content,
@@ -68,6 +68,7 @@ export class WebSocketService {
       file_url: fileUrl,
       file_name: fileName,
       file_type: fileType,
+      attachments: attachments,
     })
   }
 

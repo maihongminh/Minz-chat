@@ -147,6 +147,20 @@ class Message:
     created_at: datetime
     is_edited: bool
     is_deleted: bool
+    # Legacy single file fields (backward compatible)
+    file_url: str (nullable)
+    file_name: str (nullable)
+    file_type: str (nullable)
+
+#### Attachment Model (NEW - v2.0)
+class Attachment:
+    id: int (PK)
+    message_id: int (FK -> Message)
+    file_url: str
+    file_name: str
+    file_type: str
+    file_size: bigint (nullable)
+    created_at: datetime
 ```
 
 ### 2.3. API Endpoints
@@ -267,7 +281,7 @@ App
 
 ## 4. Database Schema
 
-### Entity Relationship Diagram
+### Entity Relationship Diagram (Updated v2.0)
 
 ```
 ┌─────────────────┐
@@ -297,15 +311,21 @@ App
          │           │ created_at   │
          │           └──────┬───────┘
          │                  │
-    ┌────▼──────────┐       │
-    │     Room      │◄──────┘
-    ├───────────────┤
-    │ id (PK)       │
-    │ name          │
-    │ description   │
-    │ is_private    │
-    │ created_at    │
-    └───────────────┘
+    ┌────▼──────────┐       │         ┌──────────────────┐
+    │     Room      │◄──────┘         │  Attachment (NEW)│
+    ├───────────────┤                 ├──────────────────┤
+    │ id (PK)       │                 │ id (PK)          │
+    │ name          │                 │ message_id (FK)  │───┐
+    │ description   │                 │ file_url         │   │
+    │ is_private    │                 │ file_name        │   │
+    │ created_at    │                 │ file_type        │   │
+    └───────────────┘                 │ file_size        │   │
+                                      │ created_at       │   │
+                                      └──────────────────┘   │
+                                              │              │
+                                              └──────────────┘
+                                         (Multiple attachments
+                                          per message)
 ```
 
 ### Constraints & Indexes
@@ -314,6 +334,7 @@ App
 - `users.id`
 - `rooms.id`
 - `messages.id`
+- `attachments.id` (NEW)
 - `room_members.id`
 
 **Unique Constraints:**
@@ -326,6 +347,7 @@ App
 - `users.email` (unique index)
 - `messages.created_at` (for sorting)
 - `messages.room_id` (for filtering)
+- `attachments.message_id` (NEW - for fast attachment queries)
 
 **Foreign Keys:**
 - `room_members.room_id` → `rooms.id` (CASCADE DELETE)
@@ -333,6 +355,7 @@ App
 - `messages.sender_id` → `users.id`
 - `messages.room_id` → `rooms.id`
 - `messages.receiver_id` → `users.id`
+- `attachments.message_id` → `messages.id` (CASCADE DELETE) (NEW)
 
 ---
 

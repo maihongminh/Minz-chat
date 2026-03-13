@@ -91,6 +91,62 @@ Hướng dẫn test các chức năng của ứng dụng.
 2. Refresh trang (F5)
 3. **Expected:** Tất cả messages vẫn hiển thị
 
+#### ✓ Test Single File Upload (Legacy)
+1. Join vào room
+2. Click attach button (📎)
+3. Select 1 image file (< 5MB)
+4. **Expected:** Preview hiển thị
+5. Add message text (optional)
+6. Click Send
+7. **Expected:** Message với file hiển thị, image clickable
+
+#### ✓ Test Multiple File Upload (v2.0 - NEW)
+1. Join vào room
+2. Click attach button (📎)
+3. Select 2-5 files (Hold Ctrl/Cmd)
+4. **Expected:** Grid preview hiển thị tất cả files
+5. **Expected:** Images show thumbnails (80x80px)
+6. **Expected:** Documents show file icons
+7. Add message text: "Check these files!"
+8. Click Send
+9. **Expected:** Message với grid layout attachments
+10. **Expected:** All files clickable/downloadable
+
+#### ✓ Test Remove Individual File
+1. Select 3 files
+2. Click X button on middle file
+3. **Expected:** File removed from preview
+4. **Expected:** Other 2 files remain
+5. Send message
+6. **Expected:** Only 2 files in message
+
+#### ✓ Test File Upload Validation
+1. Try select > 5 files
+2. **Expected:** Alert "You can only upload up to 5 files at once"
+3. Try select file > 5MB
+4. **Expected:** Alert "Each file size must be less than 5MB"
+
+#### ✓ Test Multiple Files Display
+1. Send message with 2 images
+2. **Expected:** Grid layout 2 columns
+3. Send message with 4 images
+4. **Expected:** Grid layout auto-adjust
+5. Click on any image
+6. **Expected:** Open in new tab (full size)
+
+#### ✓ Test Mixed File Types
+1. Select 2 images + 1 PDF + 1 DOC
+2. **Expected:** All preview correctly
+3. Send message
+4. **Expected:** Images display inline, documents as download links
+
+#### ✓ Test File Upload in Private Chat
+1. Start private chat with user2
+2. Upload 3 files
+3. Send message
+4. **Expected:** User2 receives all 3 files
+5. **Expected:** Files display correctly
+
 ### 4. Online Status Tests
 
 #### ✓ Test Online Status
@@ -318,6 +374,8 @@ Tester: Your Name
 Authentication: ✓ PASS / ✗ FAIL
 Rooms: ✓ PASS / ✗ FAIL
 Messaging: ✓ PASS / ✗ FAIL
+File Upload (Single): ✓ PASS / ✗ FAIL
+File Upload (Multiple): ✓ PASS / ✗ FAIL (NEW v2.0)
 Online Status: ✓ PASS / ✗ FAIL
 Admin Panel: ✓ PASS / ✗ FAIL
 WebSocket: ✓ PASS / ✗ FAIL
