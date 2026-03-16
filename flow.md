@@ -1681,7 +1681,177 @@ Recipients nhận message:
 
 ---
 
-#### 9.6.3 Backend Implementation
+#### 9.6.3 Copy/Paste Image from Clipboard (NEW - v2.1)
+
+**Luồng xử lý Paste Image:**
+
+```
+User copy ảnh từ bất kỳ đâu:
+    - Screenshot (PrtScn / Cmd+Shift+4)
+    - Right-click image trên web → Copy image
+    - Copy từ file explorer
+    - Copy từ Photoshop, Paint, etc.
+    ↓
+User click vào message input textarea
+    ↓
+User nhấn Ctrl+V (Windows) / Cmd+V (Mac)
+    ↓
+Event listener bắt onPaste event:
+    const handlePaste = (e) => {
+      const items = e.clipboardData?.items
+      
+      // Tìm các items là image
+      const imageItems = []
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.startsWith('image/')) {
+          imageItems.push(items[i])
+        }
+      }
+      
+      if (imageItems.length === 0) return // Không có image, cho phép paste text bình thường
+      
+      e.preventDefault() // Ngăn paste default cho images
+      
+      // Convert clipboard images sang File objects
+      const newFiles = []
+      imageItems.forEach((item, index) => {
+        const blob = item.getAsFile()
+        if (blob) {
+          const timestamp = Date.now()
+          const fileName = `pasted-image-${timestamp}-${index}.png`
+          const file = new File([blob], fileName, { type: blob.type })
+          newFiles.push(file)
+        }
+      })
+      
+      // Merge với files đã chọn từ file picker
+      const allFiles = [...selectedFiles, ...newFiles]
+      
+      // Validate
+      if (allFiles.length > 5) {
+        alert('You can only upload up to 5 files at once')
+        return
+      }
+      
+      // Validate file sizes
+      const oversizedFiles = allFiles.filter(file => file.size > 5 * 1024 * 1024)
+      if (oversizedFiles.length > 0) {
+        alert('Each file size must be less than 5MB')
+        return
+      }
+      
+      setSelectedFiles(allFiles)
+      
+      // Tạo previews
+      const previews = [...filePreviews]
+      newFiles.forEach((file) => {
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          previews.push({ type: 'image', url: reader.result, file })
+          setFilePreviews([...previews])
+        }
+        reader.readAsDataURL(file)
+      })
+    }
+    ↓
+Ảnh được thêm vào preview grid
+    - Hiển thị thumbnail 80x80px
+    - Tên file: "pasted-image-{timestamp}-{index}.png"
+    - Có nút X để remove
+    ↓
+User có thể:
+    - Paste thêm ảnh khác (max 5 total)
+    - Upload thêm files từ file picker
+    - Remove từng file riêng lẻ
+    - Thêm message text
+    ↓
+Click Send
+    ↓
+Upload giống như multiple files upload bình thường
+    - Convert to base64
+    - Send via WebSocket
+    - Backend lưu vào attachments table
+```
+
+**Key Features:**
+
+✅ **Auto file naming:** `pasted-image-{timestamp}-{index}.png`
+✅ **Seamless integration:** Merge với file upload system hiện có
+✅ **Multiple paste:** Có thể paste nhiều lần (max 5 files total)
+✅ **Combine upload methods:** Paste + File picker cùng lúc
+✅ **No text interference:** Chỉ prevent default khi detect image, text paste vẫn hoạt động bình thường
+✅ **Validation:** Giống như file upload (max 5 files, max 5MB/file)
+
+**Frontend Code:**
+
+```javascript
+// ChatArea.jsx
+const [selectedFiles, setSelectedFiles] = useState([])
+const [filePreviews, setFilePreviews] = useState([])
+
+const handlePaste = (e) => {
+  const items = e.clipboardData?.items
+  if (!items) return
+  
+  const imageItems = []
+  for (let i = 0; i < items.length; i++) {
+    if (items[i].type.startsWith('image/')) {
+      imageItems.push(items[i])
+    }
+  }
+  
+  if (imageItems.length === 0) return
+  
+  e.preventDefault()
+  
+  const newFiles = []
+  imageItems.forEach((item, index) => {
+    const blob = item.getAsFile()
+    if (blob) {
+      const timestamp = Date.now()
+      const fileName = `pasted-image-${timestamp}-${index}.png`
+      const file = new File([blob], fileName, { type: blob.type })
+      newFiles.push(file)
+    }
+  })
+  
+  // ... validation and merge logic
+  setSelectedFiles(allFiles)
+  // ... create previews
+}
+
+// Add to textarea
+<textarea
+  onPaste={handlePaste}
+  // ... other props
+/>
+```
+
+**Use Cases:**
+
+1. **Screenshot sharing:**
+   - Take screenshot (PrtScn)
+   - Paste directly vào chat (Ctrl+V)
+   - No need to save file first
+
+2. **Web image sharing:**
+   - Right-click image → Copy image
+   - Paste vào chat
+   - Instant share
+
+3. **Design collaboration:**
+   - Copy từ Photoshop/Figma
+   - Paste vào chat
+   - Quick feedback
+
+4. **Multi-source upload:**
+   - Paste 2 screenshots
+   - Upload thêm 2 files từ folder
+   - Combine cả 4 trong 1 message
+
+---
+
+#### 9.6.4 Backend Implementation
 
 **Database Schema (v2.0 - Multiple Files Support):**
 
@@ -2308,16 +2478,19 @@ const handleSendMessage = (e) => {
 
 #### 9.6.6 Features & Limitations
 
-**✅ Supported Features (v2.0 - Updated):**
-- ✅ **Multiple file upload** (up to 5 files at once) - NEW
+**✅ Supported Features (v2.1 - Updated):**
+- ✅ **Multiple file upload** (up to 5 files at once) - v2.0
+- ✅ **Copy/Paste images from clipboard** (Ctrl+V / Cmd+V) - v2.1 NEW
 - ✅ Upload images (JPEG, PNG, GIF)
 - ✅ Upload documents (PDF, DOC, DOCX, TXT)
-- ✅ **Grid preview** for multiple files before sending - NEW
-- ✅ **Individual file removal** from preview - NEW
+- ✅ **Grid preview** for multiple files before sending - v2.0
+- ✅ **Individual file removal** from preview - v2.0
 - ✅ File size validation (max 5MB per file)
-- ✅ **Grid layout display** for multiple attachments in messages - NEW
+- ✅ **Grid layout display** for multiple attachments in messages - v2.0
 - ✅ Display images inline in chat (clickable to open full size)
 - ✅ Download links for non-image files
+- ✅ **Auto file naming** for pasted images - v2.1
+- ✅ **Combine paste + upload** methods - v2.1
 - ✅ Text + multiple files in same message
 - ✅ Works in both public channels and private chats
 - ✅ **Backward compatible** with single file uploads
@@ -2360,13 +2533,15 @@ attachments table (NEW):
 1. Upload to cloud storage (AWS S3, Cloudinary) thay vì base64
 2. Image compression và resize tự động
 3. ~~Multiple file upload~~ ✅ **DONE (v2.0)**
-4. Upload progress indicator
-5. File preview modal (gallery view)
-6. Video/audio file support
-7. Drag & drop upload
-8. Copy/paste image from clipboard
-9. Increase file count limit (currently 5)
-10. Batch download multiple files
+4. ~~Copy/paste image from clipboard~~ ✅ **DONE (v2.1)**
+5. Upload progress indicator
+6. File preview modal (gallery view)
+7. Video/audio file support
+8. Drag & drop upload
+9. Copy/paste files (not just images)
+10. Increase file count limit (currently 5)
+11. Batch download multiple files
+12. Image editing before sending (crop, rotate)
 
 ---
 

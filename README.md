@@ -23,6 +23,7 @@ A modern real-time chat application built with **FastAPI** (Python) and **React*
 - User avatars
 - Timestamps
 - **Multiple file upload** (up to 5 files per message) 🆕
+- **Copy/Paste images from clipboard** (Ctrl+V / Cmd+V) 🆕
 - Image preview and inline display
 - Document upload and download
 - Read receipts and typing indicators
@@ -156,7 +157,14 @@ Frontend will be available at: `http://localhost:3000`
    - Click on a user in the member list for private messages
    - Messages are delivered in real-time via WebSocket
 
-4. **View Online Users**
+4. **Send Files & Images**
+   - **Upload files**: Click the paperclip icon 📎 to select up to 5 files
+   - **Paste images**: Copy any image (screenshot, web image, etc.) and press **Ctrl+V** / **Cmd+V** in the message input
+   - **Preview**: See thumbnails before sending
+   - **Remove**: Click ✕ on any file to remove it from the preview
+   - **Send**: Press Enter or click the send button
+
+5. **View Online Users**
    - See who's online in the member list on the right
    - Green dot indicates online status
 
@@ -338,7 +346,14 @@ npm run preview
 
 ## Recent Updates
 
-### v2.0 - Multiple File Upload Feature 🎉
+### v2.1 - Copy/Paste Image Feature 🎉
+- ✅ **Paste images directly from clipboard** (Ctrl+V / Cmd+V)
+- ✅ Auto-generate file names for pasted images
+- ✅ Works with screenshots, copied images from web, etc.
+- ✅ Seamlessly integrates with file upload system
+- ✅ Combine pasted images with uploaded files (max 5 total)
+
+### v2.0 - Multiple File Upload Feature
 - ✅ Upload up to 5 files simultaneously
 - ✅ Grid preview before sending
 - ✅ Individual file removal
@@ -350,6 +365,7 @@ npm run preview
 ## Future Enhancements
 
 - [x] ~~File upload and image sharing~~ ✅ **DONE (v2.0)**
+- [x] ~~Copy/Paste images from clipboard~~ ✅ **DONE (v2.1)**
 - [ ] Emoji picker and reactions
 - [ ] Voice and video calls
 - [ ] User roles and permissions (Partially done - Admin roles exist)
@@ -362,6 +378,7 @@ npm run preview
 - [ ] Cloud storage integration (S3/Cloudinary)
 - [ ] Image compression
 - [ ] Drag & drop file upload
+- [ ] Copy/Paste files (not just images)
 
 ## License
 

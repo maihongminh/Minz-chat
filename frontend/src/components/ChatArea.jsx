@@ -259,6 +259,74 @@ function ChatArea() {
     }
   }
 
+  const handlePaste = (e) => {
+    // Get clipboard data
+    const items = e.clipboardData?.items
+    if (!items) return
+    
+    // Find image items in clipboard
+    const imageItems = []
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith('image/')) {
+        imageItems.push(items[i])
+      }
+    }
+    
+    if (imageItems.length === 0) return
+    
+    // Prevent default paste behavior for images
+    e.preventDefault()
+    
+    // Convert clipboard images to File objects
+    const newFiles = []
+    imageItems.forEach((item, index) => {
+      const blob = item.getAsFile()
+      if (blob) {
+        // Create a proper File object with a generated name
+        const timestamp = Date.now()
+        const fileName = `pasted-image-${timestamp}-${index}.png`
+        const file = new File([blob], fileName, { type: blob.type })
+        newFiles.push(file)
+      }
+    })
+    
+    if (newFiles.length === 0) return
+    
+    // Merge with existing selected files
+    const allFiles = [...selectedFiles, ...newFiles]
+    
+    // Validate total files (max 5)
+    if (allFiles.length > 5) {
+      alert('You can only upload up to 5 files at once')
+      return
+    }
+    
+    // Validate file sizes (max 5MB per file)
+    const oversizedFiles = allFiles.filter(file => file.size > 5 * 1024 * 1024)
+    if (oversizedFiles.length > 0) {
+      alert('Each file size must be less than 5MB')
+      return
+    }
+    
+    setSelectedFiles(allFiles)
+    
+    // Create previews for all files
+    const previews = [...filePreviews]
+    let loadedCount = 0
+    
+    newFiles.forEach((file, index) => {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        previews.push({ type: 'image', url: reader.result, file })
+        loadedCount++
+        if (loadedCount === newFiles.length) {
+          setFilePreviews([...previews])
+        }
+      }
+      reader.readAsDataURL(file)
+    })
+  }
+
   const handleKeyDown = (e) => {
     // Send message on Enter (without Shift)
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -735,6 +803,7 @@ function ChatArea() {
             value={messageInput}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
             onFocus={handleClearUnread}
             rows={1}
           />
