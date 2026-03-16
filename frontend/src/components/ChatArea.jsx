@@ -501,57 +501,137 @@ function ChatArea() {
                       </div>
                     ) : (
                       <div className="message-compact">
-                        <span className="message-time-compact">{formatTime(msg.created_at)}</span>
-                        {msg.content && (
-                          <div className="message-text">
-                            {msg.content}
-                          </div>
-                        )}
-                        {msg.attachments && msg.attachments.length > 0 && (
-                          <div className="message-attachments-grid">
-                            {msg.attachments.map((att) => (
-                              <div key={att.id} className="message-attachment">
-                                {att.file_type?.startsWith('image/') ? (
-                                  <img 
-                                    src={att.file_url} 
-                                    alt={att.file_name} 
-                                    className="message-image"
-                                    onClick={() => window.open(att.file_url, '_blank')}
-                                  />
-                                ) : (
-                                  <a 
-                                    href={att.file_url} 
-                                    download={att.file_name}
-                                    className="message-file"
-                                  >
-                                    <FaFile className="file-icon" />
-                                    <span>{att.file_name}</span>
-                                  </a>
+                        {!isCurrentUser && (
+                          <>
+                            {(msg.attachments && msg.attachments.length > 0) || msg.file_url ? (
+                              <div className="message-with-attachment">
+                                {msg.content && (
+                                  <div className="attachment-text">
+                                    {msg.content}
+                                  </div>
+                                )}
+                                {msg.attachments && msg.attachments.length > 0 && (
+                                  <div className="message-attachments-grid">
+                                    {msg.attachments.map((att) => (
+                                      <div key={att.id} className="message-attachment">
+                                        {att.file_type?.startsWith('image/') ? (
+                                          <img 
+                                            src={att.file_url} 
+                                            alt={att.file_name} 
+                                            className="message-image"
+                                            onClick={() => window.open(att.file_url, '_blank')}
+                                          />
+                                        ) : (
+                                          <a 
+                                            href={att.file_url} 
+                                            download={att.file_name}
+                                            className="message-file"
+                                          >
+                                            <FaFile className="file-icon" />
+                                            <span>{att.file_name}</span>
+                                          </a>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                                {msg.file_url && (
+                                  <div className="message-attachment">
+                                    {msg.file_type?.startsWith('image/') ? (
+                                      <img 
+                                        src={msg.file_url} 
+                                        alt={msg.file_name} 
+                                        className="message-image"
+                                        onClick={() => window.open(msg.file_url, '_blank')}
+                                      />
+                                    ) : (
+                                      <a 
+                                        href={msg.file_url} 
+                                        download={msg.file_name}
+                                        className="message-file"
+                                      >
+                                        <FaFile className="file-icon" />
+                                        <span>{msg.file_name}</span>
+                                      </a>
+                                    )}
+                                  </div>
                                 )}
                               </div>
-                            ))}
-                          </div>
-                        )}
-                        {msg.file_url && (
-                          <div className="message-attachment">
-                            {msg.file_type?.startsWith('image/') ? (
-                              <img 
-                                src={msg.file_url} 
-                                alt={msg.file_name} 
-                                className="message-image"
-                                onClick={() => window.open(msg.file_url, '_blank')}
-                              />
                             ) : (
-                              <a 
-                                href={msg.file_url} 
-                                download={msg.file_name}
-                                className="message-file"
-                              >
-                                <FaFile className="file-icon" />
-                                <span>{msg.file_name}</span>
-                              </a>
+                              msg.content && (
+                                <div className="message-text">
+                                  {msg.content}
+                                </div>
+                              )
                             )}
-                          </div>
+                            <span className="message-time-compact">{formatTime(msg.created_at)}</span>
+                          </>
+                        )}
+                        {isCurrentUser && (
+                          <>
+                            <span className="message-time-compact">{formatTime(msg.created_at)}</span>
+                            {(msg.attachments && msg.attachments.length > 0) || msg.file_url ? (
+                              <div className="message-with-attachment">
+                                {msg.content && (
+                                  <div className="attachment-text">
+                                    {msg.content}
+                                  </div>
+                                )}
+                                {msg.attachments && msg.attachments.length > 0 && (
+                                  <div className="message-attachments-grid">
+                                    {msg.attachments.map((att) => (
+                                      <div key={att.id} className="message-attachment">
+                                        {att.file_type?.startsWith('image/') ? (
+                                          <img 
+                                            src={att.file_url} 
+                                            alt={att.file_name} 
+                                            className="message-image"
+                                            onClick={() => window.open(att.file_url, '_blank')}
+                                          />
+                                        ) : (
+                                          <a 
+                                            href={att.file_url} 
+                                            download={att.file_name}
+                                            className="message-file"
+                                          >
+                                            <FaFile className="file-icon" />
+                                            <span>{att.file_name}</span>
+                                          </a>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                                {msg.file_url && (
+                                  <div className="message-attachment">
+                                    {msg.file_type?.startsWith('image/') ? (
+                                      <img 
+                                        src={msg.file_url} 
+                                        alt={msg.file_name} 
+                                        className="message-image"
+                                        onClick={() => window.open(msg.file_url, '_blank')}
+                                      />
+                                    ) : (
+                                      <a 
+                                        href={msg.file_url} 
+                                        download={msg.file_name}
+                                        className="message-file"
+                                      >
+                                        <FaFile className="file-icon" />
+                                        <span>{att.file_name}</span>
+                                      </a>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              msg.content && (
+                                <div className="message-text">
+                                  {msg.content}
+                                </div>
+                              )
+                            )}
+                          </>
                         )}
                       </div>
                     )}

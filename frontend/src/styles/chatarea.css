@@ -222,6 +222,7 @@
   border-radius: 12px;
   max-width: 70%;
   display: inline-block;
+  margin-left: 56px; /* Align with message content (avatar 40px + gap 16px) */
 }
 
 .message-time-compact {
@@ -237,7 +238,7 @@
 }
 
 .message.other-message .message-time-compact {
-  text-align: right;
+  text-align: left;
 }
 
 .message:hover .message-time-compact {
@@ -476,15 +477,17 @@
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  background: var(--bg-modifier-hover);
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 8px;
   color: var(--text-normal);
   text-decoration: none;
-  transition: background 0.2s;
+  transition: all 0.2s;
 }
 
 .message-file:hover {
-  background: var(--bg-modifier-selected);
+  background: rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.25);
 }
 
 .message-file .file-icon {
@@ -494,7 +497,7 @@
 
 .message-file span {
   font-size: 14px;
-  max-width: 300px;
+  max-width: 100px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -523,8 +526,16 @@
   word-wrap: break-word;
 }
 
+.message.own-message .attachment-text {
+  text-align: right;
+}
+
 .message-with-attachment .message-attachment {
   margin-top: 0;
+}
+
+.message.other-message .message-compact .message-with-attachment {
+  margin-left: 56px; /* Align with message content (avatar 40px + gap 16px) */
 }
 
 /* Hide avatar for own messages */
@@ -596,7 +607,7 @@
   color: var(--text-normal);
   text-align: center;
   word-break: break-word;
-  max-width: 100px;
+  max-width: 60px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
