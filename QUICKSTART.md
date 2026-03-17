@@ -97,7 +97,7 @@ sudo apt install python3 python3-pip python3-venv -y
 
 ```bash
 # Di chuyển vào thư mục backend
-cd ~/first-chat/backend
+cd ~/projects/Minz-chat/backend
 
 # Tạo virtual environment
 python3 -m venv venv
@@ -111,7 +111,7 @@ source venv/bin/activate
 ### 4.2. Cài đặt Python packages
 
 ```bash
-# Đảm bảo vẫn đang ở ~/first-chat/backend (không cần cd)
+# Đảm bảo vẫn đang ở ~/projects/Minz-chat/backend (không cần cd)
 # Bạn sẽ thấy (venv) ở đầu dòng lệnh
 
 # Cài đặt tất cả dependencies
@@ -130,7 +130,7 @@ Quá trình này sẽ mất vài phút. Bạn sẽ thấy các packages được
 ### 4.3. Tạo file .env
 
 ```bash
-# Vẫn ở ~/first-chat/backend (không cần cd)
+# Vẫn ở ~/projects/Minz-chat/backend (không cần cd)
 
 # Copy file .env.example
 cp .env.example .env
@@ -175,22 +175,28 @@ Lưu file:
 - Nhấn `Enter`
 - Nhấn `Ctrl + X` (exit)
 
-### 4.4. Chạy Database Migration (QUAN TRỌNG!)
+### 4.4. Khởi tạo Database (QUAN TRỌNG!)
 
 ```bash
-# Vẫn ở ~/first-chat/backend (không cần cd)
+# Vẫn ở ~/projects/Minz-chat/backend (không cần cd)
 # Đảm bảo đang trong virtual environment (có (venv) ở đầu dòng)
 
-# Chạy migration để tạo bảng attachments (v2.0)
-python3 apply_migration.py
+# Khởi tạo database - tạo tất cả các bảng
+python3 init_db.py
 ```
 
 Bạn sẽ thấy:
 ```
-Applying migration: Create attachments table...
-✓ Migration applied successfully!
-✓ Attachments table created
-✓ Index created on message_id
+Initializing database...
+Creating all tables from models...
+✓ Database initialized successfully!
+✓ Tables created:
+  - users
+  - rooms
+  - room_members
+  - messages
+  - message_reads
+  - attachments
 ```
 
 ✅ Database đã có đầy đủ tables!
@@ -198,7 +204,7 @@ Applying migration: Create attachments table...
 ### 4.5. Khởi động Backend
 
 ```bash
-# Vẫn ở ~/first-chat/backend (không cần cd)
+# Vẫn ở ~/projects/Minz-chat/backend (không cần cd)
 # Đảm bảo đang trong virtual environment (có (venv) ở đầu dòng)
 # Nếu chưa có, chạy: source venv/bin/activate
 
@@ -273,7 +279,7 @@ node --version  # Sẽ là v18.x hoặc v20.x
 
 ```bash
 # Di chuyển vào thư mục frontend
-cd ~/first-chat/frontend
+cd ~/projects/Minz-chat/frontend
 
 # Cài đặt packages
 npm install
@@ -313,7 +319,7 @@ Bạn sẽ thấy:
 
 ```bash
 # Di chuyển vào backend
-cd ~/first-chat/backend
+cd ~/projects/Minz-chat/backend
 
 # Kích hoạt virtual environment
 source venv/bin/activate
@@ -471,7 +477,7 @@ sudo systemctl status postgresql
 
 **Giải pháp:**
 ```bash
-cd ~/first-chat/backend
+cd ~/projects/Minz-chat/backend
 source venv/bin/activate
 pip install -r requirements.txt
 ```
@@ -512,7 +518,7 @@ CREATE DATABASE chatdb;
 **Giải pháp:**
 ```bash
 # Promote user to admin
-cd ~/first-chat/backend
+cd ~/projects/Minz-chat/backend
 source venv/bin/activate
 python create_superadmin.py
 # Chọn promote existing user
@@ -524,14 +530,14 @@ python create_superadmin.py
 
 ### Terminal 1 - Backend:
 ```bash
-cd ~/first-chat/backend
+cd ~/projects/Minz-chat/backend
 source venv/bin/activate
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 ### Terminal 2 - Frontend:
 ```bash
-cd ~/first-chat/frontend
+cd ~/projects/Minz-chat/frontend
 npm run dev
 ```
 
@@ -565,7 +571,7 @@ npm run dev
 # Sử dụng screen hoặc tmux
 sudo apt install screen
 screen -S backend
-cd ~/first-chat/backend
+cd ~/projects/Minz-chat/backend
 source venv/bin/activate
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 # Nhấn Ctrl+A, sau đó D để detach

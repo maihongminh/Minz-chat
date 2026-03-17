@@ -78,7 +78,7 @@ GRANT ALL PRIVILEGES ON DATABASE chatdb TO chatuser;
 ### 2. Backend Setup
 
 ```bash
-cd first-chat/backend
+cd projects/Minz-chat/backend
 
 # Create virtual environment
 python -m venv venv
@@ -104,10 +104,18 @@ nano .env
 - A secure `SECRET_KEY` (generate one with: `openssl rand -hex 32`)
 - OAuth2 credentials (optional, for Google/GitHub login)
 
+**Initialize Database:**
+```bash
+# Create all database tables
+python3 init_db.py
+```
+
+This will create all required tables: users, rooms, room_members, messages, message_reads, and attachments.
+
 ### 3. Frontend Setup
 
 ```bash
-cd first-chat/frontend
+cd projects/Minz-chat/frontend
 
 # Install dependencies
 npm install
@@ -118,7 +126,7 @@ npm install
 ### Start Backend (Terminal 1)
 
 ```bash
-cd first-chat/backend
+cd projects/Minz-chat/backend
 source venv/bin/activate  # or venv\Scripts\activate on Windows
 
 # Run with uvicorn
@@ -131,7 +139,7 @@ API Documentation: `http://localhost:8000/docs`
 ### Start Frontend (Terminal 2)
 
 ```bash
-cd first-chat/frontend
+cd projects/Minz-chat/frontend
 
 # Run development server
 npm run dev
@@ -171,7 +179,7 @@ Frontend will be available at: `http://localhost:3000`
 ## Project Structure
 
 ```
-first-chat/
+projects/Minz-chat/
 ├── backend/
 │   ├── app/
 │   │   ├── api/          # API endpoints

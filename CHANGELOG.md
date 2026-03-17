@@ -1,4 +1,39 @@
-# Changelog - First Chat Application
+# Changelog - Minz Chat Application
+
+## [v2.0.1] - 2026-03-17
+
+### 🔧 Bug Fixes & Improvements
+
+#### Database Initialization
+- ✅ **Fixed**: Replaced `apply_migration.py` with `init_db.py`
+- ✅ **Reason**: `apply_migration.py` failed when `messages` table didn't exist
+- ✅ **Solution**: New `init_db.py` creates all tables from SQLAlchemy models in correct order
+- ✅ **Benefit**: Cleaner initialization, no dependency issues
+
+#### Files Changed
+- **Removed**:
+  - `backend/apply_migration.py` - Replaced by init_db.py
+  - `backend/create_attachments_table.sql` - No longer needed
+- **Added**:
+  - `backend/init_db.py` - Universal database initialization script
+
+#### Documentation Updates
+- Updated `QUICKSTART.md` - Changed migration step to use `init_db.py`
+- Updated `README.md` - Added database initialization instructions
+- Fixed all paths from `~/first-chat` to `~/projects/Minz-chat`
+
+### 🔄 Migration from v2.0.0
+
+If you already ran `apply_migration.py` successfully, no action needed!
+
+If you encountered the "messages does not exist" error:
+```bash
+cd ~/projects/Minz-chat/backend
+source venv/bin/activate
+python3 init_db.py
+```
+
+---
 
 ## [v2.0.0] - 2024-03-13
 
@@ -114,12 +149,9 @@ To upgrade to v2.0:
 # 1. Pull latest code
 git pull
 
-# 2. Run database migration
+# 2. Initialize database (creates all tables)
 cd backend
-python3 apply_migration.py
-
-# Or manually:
-psql -U chatuser -d chatdb -f create_attachments_table.sql
+python3 init_db.py
 
 # 3. Restart backend
 # The backend will automatically work with new schema
