@@ -102,6 +102,22 @@ export class WebSocketService {
     })
   }
 
+  editMessage(messageId, newContent) {
+    this.send({
+      type: 'edit_message',
+      message_id: messageId,
+      content: newContent,
+    })
+  }
+
+  deleteMessage(messageId, deleteForEveryone = false) {
+    this.send({
+      type: 'delete_message',
+      message_id: messageId,
+      delete_for_everyone: deleteForEveryone,
+    })
+  }
+
   disconnect() {
     if (this.ws) {
       this.ws.close()

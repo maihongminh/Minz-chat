@@ -27,6 +27,9 @@ A modern real-time chat application built with **FastAPI** (Python) and **React*
 - Image preview and inline display
 - Document upload and download
 - Read receipts and typing indicators
+- **Edit messages** - Edit your sent messages with inline editing 🆕
+- **Delete messages** - Delete for yourself or everyone 🆕
+- **Message actions menu** - 3-dot menu on hover with Edit/Delete options 🆕
 
 ✅ **Modern UI**
 - Discord-inspired dark theme

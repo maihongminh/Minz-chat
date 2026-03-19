@@ -142,3 +142,57 @@ async def get_private_messages(
         })
     
     return list(reversed(result))
+
+@router.put("/{message_id}", response_model=MessageResponse)
+async def edit_message(
+    message_id: int,
+    content: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    # Find the message
+    message = db.query(Message).filter(Message.id == message_id).first()
+    
+    if not message:
+        raise HTTPException(status_code=404, detail="Message not found")
+    
+    # Only the sender can edit their message
+    if message.sender_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You can only edit your own messages")
+    
+    # Update message
+    message.content = content
+    message.is_edited = True
+    
+    db.commit()
+    db.refresh(message)
+    
+    return message
+
+@router.delete("/{message_id}")
+async def delete_message(
+    message_id: int,
+    delete_for_everyone: bool = False,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    # Find the message
+    message = db.query(Message).filter(Message.id == message_id).first()
+    
+    if not message:
+        raise HTTPException(status_code=404, detail="Message not found")
+    
+    # Only the sender can delete their message
+    if message.sender_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You can only delete your own messages")
+    
+    if delete_for_everyone:
+        # Mark as deleted for everyone
+        message.is_deleted = True
+        message.content = "This message was deleted"
+        db.commit()
+        return {"detail": "Message deleted for everyone", "delete_for_everyone": True, "message_id": message_id}
+    else:
+        # For "delete for me", we'll handle this on the frontend
+        # by hiding the message, not actually deleting from DB
+        return {"detail": "Message deleted for you", "delete_for_everyone": False, "message_id": message_id}

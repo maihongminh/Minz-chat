@@ -71,6 +71,9 @@ Xem chi tiết trong file **QUICKSTART.md**
 - ✅ **Upload nhiều files** (tối đa 5 files/message) 🆕
 - ✅ Preview hình ảnh và tài liệu
 - ✅ Hiển thị attachments dạng grid
+- ✅ **Chỉnh sửa tin nhắn** - Edit tin nhắn đã gửi với inline editing 🆕
+- ✅ **Xóa tin nhắn** - Xóa cho mình hoặc xóa cho mọi người 🆕
+- ✅ **Menu hành động** - Nút 3 chấm khi hover với tùy chọn Edit/Delete 🆕
 
 ### 🛡️ Admin Panel
 - ✅ Dashboard với statistics

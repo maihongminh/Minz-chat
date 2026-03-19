@@ -1,5 +1,199 @@
 # Changelog - Minz Chat Application
 
+## [v2.1.0] - 2026-03-19
+
+### 🎉 Major Features
+
+#### Message Edit & Delete
+- ✅ **Edit Messages**: Edit your sent messages with inline editing
+  - Click 3-dot menu (⋮) → Edit
+  - Inline textarea with Save/Cancel buttons
+  - Shows "(edited)" indicator after editing
+  - Real-time sync across all users
+  - Keyboard shortcuts: Enter to save, Esc to cancel
+
+- ✅ **Delete Messages**: Two deletion modes
+  - **Delete for me**: Only hides message on your device
+  - **Delete for everyone**: Replaces message with "This message was deleted" for all users
+  - Confirmation popup with clear options
+  - Real-time sync via WebSocket
+
+#### Message Actions UI
+- ✅ **3-dot Menu**: Hover on any message to see action menu
+  - Appears on all messages (with/without attachments)
+  - Clean horizontal icon popup (Edit + Delete)
+  - Perfectly aligned, doesn't affect message layout
+  - Auto-scroll when editing last message to prevent overlap with input area
+
+### 🗄️ Database Changes
+
+#### Updated Table: `messages`
+- Added `is_edited` column (Boolean, default: False)
+- Added `is_deleted` column (Boolean, default: False)
+- Both fields already existed in schema, now utilized
+
+### 📦 Backend Changes
+
+#### New API Endpoints
+- **PUT** `/api/messages/{message_id}` - Edit message content
+  - Updates message content
+  - Sets `is_edited = True`
+  - Returns updated message
+  
+- **DELETE** `/api/messages/{message_id}` - Delete message
+  - Query param: `delete_for_everyone` (boolean)
+  - For everyone: Sets `is_deleted = True` and content to "This message was deleted"
+  - For me: Returns success, frontend handles hiding
+
+#### WebSocket Handlers
+- **edit_message**: Real-time message editing
+  - Validates sender ownership
+  - Broadcasts to all relevant users
+  - Updates message in database
+  
+- **delete_message**: Real-time message deletion
+  - Validates sender ownership
+  - Two modes: delete for everyone / delete for me
+  - Broadcasts to appropriate recipients
+
+#### Modified Files
+- `backend/app/api/messages.py` - Added edit/delete endpoints
+- `backend/app/services/websocket.py` - Added WebSocket handlers
+- `backend/app/models/message.py` - Utilized is_edited and is_deleted fields
+
+### 🎨 Frontend Changes
+
+#### New WebSocket Methods
+- `editMessage(messageId, newContent)` - Send edit request
+- `deleteMessage(messageId, deleteForEveryone)` - Send delete request
+
+#### Store Updates
+- `updateMessage(messageId, updates)` - Update message in state
+- `hideMessage(messageId)` - Hide message locally (delete for me)
+- `deleteMessageLocally(messageId)` - Remove from messages array
+
+#### Chat.jsx Enhancements
+- Handle `message_edited` event - Update message content and show edited indicator
+- Handle `message_deleted` event - Update or hide message based on deletion type
+
+#### ChatArea.jsx Major Refactor
+- **Message Actions UI**:
+  - 3-dot menu button on hover
+  - Horizontal icon popup with Edit/Delete
+  - Position: absolute, doesn't affect layout
+  - Clean alignment for all message types
+  
+- **Edit Mode**:
+  - Inline textarea replacement
+  - Save/Cancel action buttons
+  - Auto-scroll for last message
+  - Keyboard shortcuts support
+  
+- **Delete Confirmation**:
+  - Beautiful modal popup
+  - Two clear options with icons
+  - Cancel button
+  - Click outside to dismiss
+
+#### CSS Additions
+- `.message-actions-wrapper` - Container for 3-dot button
+- `.message-menu-toggle-btn` - 3-dot button styling
+- `.message-actions-popup` - Horizontal icon menu
+- `.message-action-btn` - Individual action buttons
+- `.message-edit-container` - Edit mode UI
+- `.message-edit-input` - Edit textarea
+- `.message-edit-actions` - Save/Cancel buttons
+- `.edited-indicator` - "(edited)" text styling
+- `.deleted-message` - Deleted message styling
+- `.delete-confirmation-overlay` - Modal overlay
+- `.delete-confirmation-modal` - Popup modal
+- `.btn-delete-for-me` / `.btn-delete-for-everyone` - Delete option buttons
+
+#### Modified Files
+- `frontend/src/services/websocket.js` - Added edit/delete methods
+- `frontend/src/utils/store.js` - Added message update/hide functions
+- `frontend/src/pages/Chat.jsx` - Handle edit/delete events
+- `frontend/src/components/ChatArea.jsx` - Complete UI implementation
+- `frontend/src/styles/chatarea.css` - All new styling
+
+### 🔧 Technical Details
+
+#### WebSocket Edit Message Format
+```javascript
+{
+  type: 'edit_message',
+  message_id: 123,
+  content: 'Updated message text'
+}
+```
+
+#### WebSocket Delete Message Format
+```javascript
+{
+  type: 'delete_message',
+  message_id: 123,
+  delete_for_everyone: true // or false
+}
+```
+
+#### Edit Event Response
+```javascript
+{
+  type: 'message_edited',
+  message_id: 123,
+  content: 'Updated text',
+  is_edited: true,
+  edited_at: '2026-03-19T16:00:00'
+}
+```
+
+#### Delete Event Response
+```javascript
+{
+  type: 'message_deleted',
+  message_id: 123,
+  delete_for_everyone: true
+}
+```
+
+### 🎯 UI/UX Improvements
+
+- **Message Alignment**: All messages perfectly aligned regardless of actions menu
+- **Hover States**: Smooth transitions for action buttons
+- **Visual Feedback**: Clear indicators for edited/deleted messages
+- **Responsive Design**: Works on all screen sizes
+- **Keyboard Support**: Enter/Esc shortcuts in edit mode
+- **Auto-scroll**: Prevents edit UI from being hidden by input area
+
+### 🐛 Bug Fixes
+
+- Fixed message alignment issues when action buttons appear
+- Fixed dropdown menu positioning and visibility
+- Fixed edit mode overlap with input area on last message
+- Fixed flexbox layout for consistent message bubble sizing
+
+### 🔄 Migration Guide
+
+No database migration needed! The `is_edited` and `is_deleted` columns already exist.
+
+```bash
+# 1. Pull latest code
+git pull
+
+# 2. Restart backend
+cd backend
+# Backend will automatically work with new endpoints
+
+# 3. Clear browser cache and reload frontend
+# Frontend will automatically use new features
+```
+
+### ⚠️ Breaking Changes
+
+None - Fully backward compatible!
+
+---
+
 ## [v2.0.1] - 2026-03-17
 
 ### 🔧 Bug Fixes & Improvements

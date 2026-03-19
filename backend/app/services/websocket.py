@@ -336,3 +336,82 @@ async def handle_websocket_message(data: dict, user: User, db: Session):
                 # Also send to room members if it's a room message
                 if message.room_id:
                     await manager.send_room_message(receipt_data, message.room_id)
+    
+    elif message_type == "edit_message":
+        message_id = data.get("message_id")
+        new_content = data.get("content")
+        
+        if not message_id or not new_content:
+            return
+        
+        # Find and update the message
+        message = db.query(Message).filter(Message.id == message_id).first()
+        
+        if not message:
+            return
+        
+        # Only the sender can edit
+        if message.sender_id != user.id:
+            return
+        
+        # Update message
+        message.content = new_content
+        message.is_edited = True
+        db.commit()
+        db.refresh(message)
+        
+        # Prepare edit notification
+        edit_data = {
+            "type": "message_edited",
+            "message_id": message_id,
+            "content": new_content,
+            "is_edited": True,
+            "edited_at": datetime.utcnow().isoformat()
+        }
+        
+        # Send to appropriate recipients
+        if message.is_private and message.receiver_id:
+            await manager.send_personal_message(edit_data, user.id)
+            await manager.send_personal_message(edit_data, message.receiver_id)
+        elif message.room_id:
+            await manager.send_room_message(edit_data, message.room_id)
+    
+    elif message_type == "delete_message":
+        message_id = data.get("message_id")
+        delete_for_everyone = data.get("delete_for_everyone", False)
+        
+        if not message_id:
+            return
+        
+        # Find the message
+        message = db.query(Message).filter(Message.id == message_id).first()
+        
+        if not message:
+            return
+        
+        # Only the sender can delete
+        if message.sender_id != user.id:
+            return
+        
+        # Prepare delete notification
+        delete_data = {
+            "type": "message_deleted",
+            "message_id": message_id,
+            "delete_for_everyone": delete_for_everyone
+        }
+        
+        if delete_for_everyone:
+            # Mark as deleted for everyone
+            message.is_deleted = True
+            message.content = "This message was deleted"
+            db.commit()
+            
+            # Send to appropriate recipients
+            if message.is_private and message.receiver_id:
+                await manager.send_personal_message(delete_data, user.id)
+                await manager.send_personal_message(delete_data, message.receiver_id)
+            elif message.room_id:
+                await manager.send_room_message(delete_data, message.room_id)
+        else:
+            # Delete for me only - just send to the user
+            await manager.send_personal_message(delete_data, user.id)

@@ -97,4 +97,17 @@ export const useChatStore = create((set) => ({
     return { messageReadReceipts }
   }),
   setMessageReadReceipts: (receipts) => set({ messageReadReceipts: receipts }),
+  updateMessage: (messageId, updates) => set((state) => ({
+    messages: state.messages.map(msg => 
+      msg.id === messageId ? { ...msg, ...updates } : msg
+    )
+  })),
+  deleteMessageLocally: (messageId) => set((state) => ({
+    messages: state.messages.filter(msg => msg.id !== messageId)
+  })),
+  hideMessage: (messageId) => set((state) => ({
+    messages: state.messages.map(msg =>
+      msg.id === messageId ? { ...msg, hidden: true } : msg
+    )
+  })),
 }))

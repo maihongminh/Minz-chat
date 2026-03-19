@@ -15,7 +15,7 @@ let isInitialized = false
 function Chat() {
   const navigate = useNavigate()
   const { token, user, logout } = useAuthStore()
-  const { setWs, setRooms, setOnlineUsers, addMessage, updateUserStatus, setMessages, currentRoom, currentPrivateChat, incrementUnreadRoom, incrementUnreadPrivateChat, setTyping, updateMessageReadReceipt, setMessageReadReceipts } = useChatStore()
+  const { setWs, setRooms, setOnlineUsers, addMessage, updateUserStatus, setMessages, currentRoom, currentPrivateChat, incrementUnreadRoom, incrementUnreadPrivateChat, setTyping, updateMessageReadReceipt, setMessageReadReceipts, updateMessage, deleteMessageLocally, hideMessage } = useChatStore()
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -133,6 +133,28 @@ function Chat() {
       case 'message_read':
         // Handle read receipt
         updateMessageReadReceipt(data.message_id, data.user_id)
+        break
+      
+      case 'message_edited':
+        // Handle message edit
+        updateMessage(data.message_id, {
+          content: data.content,
+          is_edited: true
+        })
+        break
+      
+      case 'message_deleted':
+        // Handle message delete
+        if (data.delete_for_everyone) {
+          // Delete for everyone - update message content
+          updateMessage(data.message_id, {
+            content: 'This message was deleted',
+            is_deleted: true
+          })
+        } else {
+          // Delete for me only - hide the message
+          hideMessage(data.message_id)
+        }
         break
       
       default:

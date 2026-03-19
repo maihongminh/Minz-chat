@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { FaHashtag, FaUserCircle, FaPaperPlane, FaPaperclip, FaTimes, FaFile, FaImage } from 'react-icons/fa'
+import { FaHashtag, FaUserCircle, FaPaperPlane, FaPaperclip, FaTimes, FaFile, FaImage, FaEllipsisV, FaEdit, FaTrash, FaCheck } from 'react-icons/fa'
 import { useChatStore, useAuthStore } from '../utils/store'
 import { format } from 'date-fns'
 import '../styles/chatarea.css'
@@ -13,17 +13,25 @@ function ChatArea() {
   const [filePreview, setFilePreview] = useState(null)
   const [selectedFiles, setSelectedFiles] = useState([])
   const [filePreviews, setFilePreviews] = useState([])
+  const [editingMessageId, setEditingMessageId] = useState(null)
+  const [editingContent, setEditingContent] = useState('')
+  const [activeMenuMessageId, setActiveMenuMessageId] = useState(null)
+  const [deleteConfirmMessageId, setDeleteConfirmMessageId] = useState(null)
   const messagesEndRef = useRef(null)
   const typingTimeoutRef = useRef(null)
   const textareaRef = useRef(null)
   const fileInputRef = useRef(null)
+  const menuRef = useRef(null)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
-  // Filter messages for current context
+  // Filter messages for current context and exclude hidden messages
   const filteredMessages = messages.filter((msg) => {
+    // Skip hidden messages (deleted for me only)
+    if (msg.hidden) return false
+    
     if (currentRoom) {
       return msg.room_id === currentRoom.id
     } else if (currentPrivateChat) {
@@ -38,6 +46,20 @@ function ChatArea() {
   useEffect(() => {
     scrollToBottom()
   }, [messages])
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setActiveMenuMessageId(null)
+      }
+    }
+    
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
 
   // Mark messages as read when viewing
   useEffect(() => {
@@ -377,6 +399,131 @@ function ChatArea() {
     return null
   }
 
+  const handleEditMessage = (msg) => {
+    setEditingMessageId(msg.id)
+    setEditingContent(msg.content)
+    setActiveMenuMessageId(null)
+    
+    // Scroll to bottom to show edit area
+    setTimeout(() => {
+      scrollToBottom()
+    }, 100)
+  }
+
+  const handleSaveEdit = () => {
+    if (!editingContent.trim() || !ws) return
+    
+    ws.editMessage(editingMessageId, editingContent)
+    setEditingMessageId(null)
+    setEditingContent('')
+  }
+
+  const handleCancelEdit = () => {
+    setEditingMessageId(null)
+    setEditingContent('')
+  }
+
+  const showDeleteConfirmation = (messageId) => {
+    setDeleteConfirmMessageId(messageId)
+    setActiveMenuMessageId(null)
+  }
+
+  const handleDeleteMessage = (messageId, deleteForEveryone) => {
+    if (!ws) return
+    
+    ws.deleteMessage(messageId, deleteForEveryone)
+    setDeleteConfirmMessageId(null)
+  }
+
+  const toggleMessageMenu = (messageId) => {
+    setActiveMenuMessageId(activeMenuMessageId === messageId ? null : messageId)
+  }
+
+  // Helper to render message text content with edit mode
+  const renderMessageContent = (msg) => {
+    const isCurrentUser = msg.sender_id === user.id
+    const isEditing = editingMessageId === msg.id
+    const isDeleted = msg.is_deleted
+
+    if (isDeleted) {
+      return (
+        <div className="message-text deleted-message">
+          <em>{msg.content}</em>
+        </div>
+      )
+    }
+
+    if (isEditing) {
+      return (
+        <div className="message-edit-container">
+          <textarea
+            className="message-edit-input"
+            value={editingContent}
+            onChange={(e) => setEditingContent(e.target.value)}
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault()
+                handleSaveEdit()
+              } else if (e.key === 'Escape') {
+                handleCancelEdit()
+              }
+            }}
+          />
+          <div className="message-edit-actions">
+            <button className="btn-save-edit" onClick={handleSaveEdit}>
+              <FaCheck /> Save
+            </button>
+            <button className="btn-cancel-edit" onClick={handleCancelEdit}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )
+    }
+
+    return (
+      <div className="message-text-container">
+        <div className="message-text">
+          {msg.content}
+          {msg.is_edited && <span className="edited-indicator"> (edited)</span>}
+        </div>
+        {isCurrentUser && (
+          <div className="message-actions-wrapper">
+            <button 
+              className="message-menu-toggle-btn" 
+              onClick={(e) => {
+                e.stopPropagation()
+                toggleMessageMenu(msg.id)
+              }}
+              title="Message options"
+            >
+              <FaEllipsisV />
+            </button>
+            {activeMenuMessageId === msg.id && (
+              <div className="message-actions-popup" ref={menuRef}>
+                <button 
+                  className="message-action-btn" 
+                  onClick={() => handleEditMessage(msg)}
+                  title="Edit message"
+                >
+                  <FaEdit />
+                </button>
+                <button 
+                  className="message-action-btn" 
+                  onClick={() => showDeleteConfirmation(msg.id)}
+                  title="Delete message"
+                >
+                  <FaTrash />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    )
+  }
+
   if (!currentRoom && !currentPrivateChat) {
     return (
       <div className="chat-area">
@@ -488,76 +635,74 @@ function ChatArea() {
                             <span className={`message-author ${isCurrentUser ? 'current-user' : ''}`}>
                               {msg.sender_username}
                             </span>
-                            <span className="message-time">{formatTime(msg.created_at)}</span>
                           </div>
-                          {msg.attachments && msg.attachments.length > 0 ? (
-                            // Message with multiple attachments
-                            <div className="message-with-attachment">
-                              {msg.content && (
-                                <div className="attachment-text">
-                                  {msg.content}
-                                </div>
-                              )}
-                              <div className="message-attachments-grid">
-                                {msg.attachments.map((att) => (
-                                  <div key={att.id} className="message-attachment">
-                                    {att.file_type?.startsWith('image/') ? (
-                                      <img 
-                                        src={att.file_url} 
-                                        alt={att.file_name} 
-                                        className="message-image"
-                                        onClick={() => window.open(att.file_url, '_blank')}
-                                      />
-                                    ) : (
-                                      <a 
-                                        href={att.file_url} 
-                                        download={att.file_name}
-                                        className="message-file"
-                                      >
-                                        <FaFile className="file-icon" />
-                                        <span>{att.file_name}</span>
-                                      </a>
-                                    )}
+                          <div className="message-body-wrapper">
+                            {msg.attachments && msg.attachments.length > 0 ? (
+                              // Message with multiple attachments
+                              <div className="message-with-attachment">
+                                {msg.content && (
+                                  <div className="attachment-text">
+                                    {msg.content}
                                   </div>
-                                ))}
-                              </div>
-                            </div>
-                          ) : msg.file_url ? (
-                            // Legacy single file attachment
-                            <div className="message-with-attachment">
-                              {msg.content && (
-                                <div className="attachment-text">
-                                  {msg.content}
-                                </div>
-                              )}
-                              <div className="message-attachment">
-                                {msg.file_type?.startsWith('image/') ? (
-                                  <img 
-                                    src={msg.file_url} 
-                                    alt={msg.file_name} 
-                                    className="message-image"
-                                    onClick={() => window.open(msg.file_url, '_blank')}
-                                  />
-                                ) : (
-                                  <a 
-                                    href={msg.file_url} 
-                                    download={msg.file_name}
-                                    className="message-file"
-                                  >
-                                    <FaFile className="file-icon" />
-                                    <span>{msg.file_name}</span>
-                                  </a>
                                 )}
+                                <div className="message-attachments-grid">
+                                  {msg.attachments.map((att) => (
+                                    <div key={att.id} className="message-attachment">
+                                      {att.file_type?.startsWith('image/') ? (
+                                        <img 
+                                          src={att.file_url} 
+                                          alt={att.file_name} 
+                                          className="message-image"
+                                          onClick={() => window.open(att.file_url, '_blank')}
+                                        />
+                                      ) : (
+                                        <a 
+                                          href={att.file_url} 
+                                          download={att.file_name}
+                                          className="message-file"
+                                        >
+                                          <FaFile className="file-icon" />
+                                          <span>{att.file_name}</span>
+                                        </a>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
-                            </div>
-                          ) : (
-                            // Text-only message
-                            msg.content && (
-                              <div className="message-text">
-                                {msg.content}
+                            ) : msg.file_url ? (
+                              // Legacy single file attachment
+                              <div className="message-with-attachment">
+                                {msg.content && (
+                                  <div className="attachment-text">
+                                    {msg.content}
+                                  </div>
+                                )}
+                                <div className="message-attachment">
+                                  {msg.file_type?.startsWith('image/') ? (
+                                    <img 
+                                      src={msg.file_url} 
+                                      alt={msg.file_name} 
+                                      className="message-image"
+                                      onClick={() => window.open(msg.file_url, '_blank')}
+                                    />
+                                  ) : (
+                                    <a 
+                                      href={msg.file_url} 
+                                      download={msg.file_name}
+                                      className="message-file"
+                                    >
+                                      <FaFile className="file-icon" />
+                                      <span>{msg.file_name}</span>
+                                    </a>
+                                  )}
+                                </div>
                               </div>
-                            )
-                          )}
+                            ) : (
+                              // Text-only message
+                              msg.content && renderMessageContent(msg)
+                            )}
+                            <span className="message-time-compact">{formatTime(msg.created_at)}</span>
+                          </div>
                         </div>
                         {isCurrentUser && (
                           msg.sender_avatar ? (
@@ -626,11 +771,7 @@ function ChatArea() {
                                 )}
                               </div>
                             ) : (
-                              msg.content && (
-                                <div className="message-text">
-                                  {msg.content}
-                                </div>
-                              )
+                              msg.content && renderMessageContent(msg)
                             )}
                             <span className="message-time-compact">{formatTime(msg.created_at)}</span>
                           </>
@@ -693,11 +834,7 @@ function ChatArea() {
                                 )}
                               </div>
                             ) : (
-                              msg.content && (
-                                <div className="message-text">
-                                  {msg.content}
-                                </div>
-                              )
+                              msg.content && renderMessageContent(msg)
                             )}
                           </>
                         )}
@@ -725,6 +862,36 @@ function ChatArea() {
       {getTypingIndicator() && (
         <div className="typing-indicator">
           <span className="typing-text">{getTypingIndicator()}</span>
+        </div>
+      )}
+
+      {/* Delete Confirmation Popup */}
+      {deleteConfirmMessageId && (
+        <div className="delete-confirmation-overlay" onClick={() => setDeleteConfirmMessageId(null)}>
+          <div className="delete-confirmation-modal" onClick={(e) => e.stopPropagation()}>
+            <h3>Delete Message</h3>
+            <p>Choose how you want to delete this message:</p>
+            <div className="delete-confirmation-actions">
+              <button 
+                className="btn-delete-for-me" 
+                onClick={() => handleDeleteMessage(deleteConfirmMessageId, false)}
+              >
+                <FaTrash /> Delete for me
+              </button>
+              <button 
+                className="btn-delete-for-everyone" 
+                onClick={() => handleDeleteMessage(deleteConfirmMessageId, true)}
+              >
+                <FaTrash /> Delete for everyone
+              </button>
+            </div>
+            <button 
+              className="btn-cancel-delete" 
+              onClick={() => setDeleteConfirmMessageId(null)}
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       )}
 
