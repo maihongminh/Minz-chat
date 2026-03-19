@@ -978,3 +978,40 @@
 .btn-cancel-delete:hover {
   background: var(--bg-tertiary);
 }
+
+/* Editing Indicator */
+.editing-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--accent-primary);
+  color: white;
+  border-radius: 8px 8px 0 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.editing-indicator span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cancel-edit-btn {
+  background: transparent;
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: background 0.2s;
+}
+
+.cancel-edit-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}

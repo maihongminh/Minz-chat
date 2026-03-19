@@ -14,7 +14,6 @@ function ChatArea() {
   const [selectedFiles, setSelectedFiles] = useState([])
   const [filePreviews, setFilePreviews] = useState([])
   const [editingMessageId, setEditingMessageId] = useState(null)
-  const [editingContent, setEditingContent] = useState('')
   const [activeMenuMessageId, setActiveMenuMessageId] = useState(null)
   const [deleteConfirmMessageId, setDeleteConfirmMessageId] = useState(null)
   const messagesEndRef = useRef(null)
@@ -199,6 +198,32 @@ function ChatArea() {
   const handleSendMessage = (e) => {
     e.preventDefault()
     
+    // If in editing mode
+    if (editingMessageId) {
+      // If input is empty, cancel edit
+      if (!messageInput.trim()) {
+        handleCancelEdit()
+        return
+      }
+      
+      // Send edit message
+      if (ws) {
+        ws.editMessage(editingMessageId, messageInput)
+      }
+      
+      // Reset editing state
+      setEditingMessageId(null)
+      setMessageInput('')
+      
+      // Reset textarea height
+      if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto'
+      }
+      
+      return
+    }
+    
+    // Normal send message flow
     if (!messageInput.trim() && !selectedFile && selectedFiles.length === 0) return
     if (!ws) return
     
@@ -350,6 +375,13 @@ function ChatArea() {
   }
 
   const handleKeyDown = (e) => {
+    // Cancel edit on Escape
+    if (e.key === 'Escape' && editingMessageId) {
+      e.preventDefault()
+      handleCancelEdit()
+      return
+    }
+    
     // Send message on Enter (without Shift)
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
@@ -401,26 +433,20 @@ function ChatArea() {
 
   const handleEditMessage = (msg) => {
     setEditingMessageId(msg.id)
-    setEditingContent(msg.content)
+    setMessageInput(msg.content)
     setActiveMenuMessageId(null)
     
-    // Scroll to bottom to show edit area
+    // Focus on input box
     setTimeout(() => {
-      scrollToBottom()
+      if (textareaRef.current) {
+        textareaRef.current.focus()
+      }
     }, 100)
-  }
-
-  const handleSaveEdit = () => {
-    if (!editingContent.trim() || !ws) return
-    
-    ws.editMessage(editingMessageId, editingContent)
-    setEditingMessageId(null)
-    setEditingContent('')
   }
 
   const handleCancelEdit = () => {
     setEditingMessageId(null)
-    setEditingContent('')
+    setMessageInput('')
   }
 
   const showDeleteConfirmation = (messageId) => {
@@ -439,45 +465,15 @@ function ChatArea() {
     setActiveMenuMessageId(activeMenuMessageId === messageId ? null : messageId)
   }
 
-  // Helper to render message text content with edit mode
+  // Helper to render message text content
   const renderMessageContent = (msg) => {
     const isCurrentUser = msg.sender_id === user.id
-    const isEditing = editingMessageId === msg.id
     const isDeleted = msg.is_deleted
 
     if (isDeleted) {
       return (
         <div className="message-text deleted-message">
           <em>{msg.content}</em>
-        </div>
-      )
-    }
-
-    if (isEditing) {
-      return (
-        <div className="message-edit-container">
-          <textarea
-            className="message-edit-input"
-            value={editingContent}
-            onChange={(e) => setEditingContent(e.target.value)}
-            autoFocus
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault()
-                handleSaveEdit()
-              } else if (e.key === 'Escape') {
-                handleCancelEdit()
-              }
-            }}
-          />
-          <div className="message-edit-actions">
-            <button className="btn-save-edit" onClick={handleSaveEdit}>
-              <FaCheck /> Save
-            </button>
-            <button className="btn-cancel-edit" onClick={handleCancelEdit}>
-              Cancel
-            </button>
-          </div>
         </div>
       )
     }
@@ -896,6 +892,14 @@ function ChatArea() {
       )}
 
       <div className="message-input-container">
+        {editingMessageId && (
+          <div className="editing-indicator">
+            <span>✏️ Editing message - Press Esc to cancel</span>
+            <button type="button" className="cancel-edit-btn" onClick={handleCancelEdit}>
+              <FaTimes />
+            </button>
+          </div>
+        )}
         {selectedFiles.length > 0 && (
           <div className="files-preview-container">
             {filePreviews.map((preview, index) => (
