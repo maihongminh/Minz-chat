@@ -2,6 +2,13 @@
 
 Hướng dẫn chi tiết từng bước để chạy ứng dụng chat realtime.
 
+## ✨ Tính năng mới (v2.2.0)
+
+- ✅ **Trả lời tin nhắn (Reply)**: Click icon reply (↩️) để trích dẫn và trả lời tin nhắn
+- ✅ **Nhảy đến tin nhắn gốc**: Click vào quote để scroll đến tin nhắn được trích dẫn
+- ✅ **Hiệu ứng highlight**: Tin nhắn gốc sẽ được highlight khi click vào quote
+- ✅ **Hỗ trợ đầy đủ**: Hoạt động với text, hình ảnh, và file đính kèm
+
 ## 📋 Yêu cầu hệ thống
 
 - **Ubuntu/Debian Linux** (hoặc WSL2 trên Windows)
@@ -177,6 +184,8 @@ Lưu file:
 
 ### 4.4. Khởi tạo Database (QUAN TRỌNG!)
 
+**Cho cài đặt mới (Fresh Installation):**
+
 ```bash
 # Vẫn ở ~/projects/Minz-chat/backend (không cần cd)
 # Đảm bảo đang trong virtual environment (có (venv) ở đầu dòng)
@@ -200,6 +209,33 @@ Creating all tables from models...
 ```
 
 ✅ Database đã có đầy đủ tables!
+
+**⚠️ Cho người dùng đang upgrade (Existing Installation):**
+
+Nếu bạn đã có database từ phiên bản cũ và đang nâng cấp, hãy chạy các migration scripts:
+
+```bash
+# Migration 1: Thêm bảng attachments (v2.0)
+python3 apply_migration.py
+
+# Migration 2: Thêm cột reply_to_message_id (v2.2)
+python3 add_reply_column.py
+```
+
+Kết quả mong đợi:
+```
+# apply_migration.py:
+Applying migration: Create attachments table...
+✓ Migration applied successfully!
+✓ Attachments table created
+
+# add_reply_column.py:
+✓ Column reply_to_message_id added successfully!
+# hoặc nếu đã có:
+ℹ️  Column reply_to_message_id already exists
+```
+
+**💡 Lưu ý:** Luôn backup database trước khi chạy migration!
 
 ### 4.5. Khởi động Backend
 
@@ -559,8 +595,19 @@ npm run dev
 
 1. ✅ Setup OAuth2 (Google/GitHub) - Optional
 2. ✅ Deploy lên production server
-3. ✅ Thêm features mới (file upload, emoji, v.v.)
+3. ✅ Thêm features mới
 4. ✅ Customize UI theo ý thích
+
+## 🆕 Tính năng đã có
+
+- ✅ **Multiple file upload** - Upload tối đa 5 files mỗi tin nhắn
+- ✅ **Clipboard paste** - Paste hình ảnh trực tiếp (Ctrl+V / Cmd+V)
+- ✅ **Edit messages** - Sửa tin nhắn đã gửi
+- ✅ **Delete messages** - Xóa cho mình hoặc cho mọi người
+- ✅ **Reply to messages** - Trích dẫn và trả lời tin nhắn (v2.2.0)
+- ✅ **Message actions menu** - Menu 3 chấm với Edit/Delete/Reply
+- ✅ **Read receipts** - Hiển thị trạng thái đã đọc
+- ✅ **Typing indicators** - Hiển thị ai đang gõ
 
 ---
 

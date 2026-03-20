@@ -29,7 +29,11 @@ A modern real-time chat application built with **FastAPI** (Python) and **React*
 - Read receipts and typing indicators
 - **Edit messages** - Edit your sent messages with inline editing 🆕
 - **Delete messages** - Delete for yourself or everyone 🆕
-- **Message actions menu** - 3-dot menu on hover with Edit/Delete options 🆕
+- **Reply to messages** - Quote and reply to any message 🆕
+  - Click reply icon to quote a message
+  - Click on quote to jump to original message with smooth animation
+  - Works with text, images, and file attachments
+- **Message actions menu** - 3-dot menu on hover with Edit/Delete/Reply options 🆕
 
 ✅ **Modern UI**
 - Discord-inspired dark theme
@@ -77,6 +81,17 @@ CREATE DATABASE chatdb;
 CREATE USER chatuser WITH PASSWORD 'chatpass';
 GRANT ALL PRIVILEGES ON DATABASE chatdb TO chatuser;
 ```
+
+**⚠️ For Existing Installations (Upgrading):**
+
+If you're upgrading from a previous version, you need to run the migration script to add the `reply_to_message_id` column:
+
+```bash
+cd backend
+python3 add_reply_column.py
+```
+
+This migration adds support for the reply-to-messages feature.
 
 ### 2. Backend Setup
 

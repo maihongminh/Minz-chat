@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { FaHashtag, FaUserCircle, FaPaperPlane, FaPaperclip, FaTimes, FaFile, FaImage, FaEllipsisV, FaEdit, FaTrash, FaCheck } from 'react-icons/fa'
+import { FaHashtag, FaUserCircle, FaPaperPlane, FaPaperclip, FaTimes, FaFile, FaImage, FaEllipsisV, FaEdit, FaTrash, FaCheck, FaReply } from 'react-icons/fa'
 import { useChatStore, useAuthStore } from '../utils/store'
 import { format } from 'date-fns'
 import '../styles/chatarea.css'
@@ -16,6 +16,8 @@ function ChatArea() {
   const [editingMessageId, setEditingMessageId] = useState(null)
   const [activeMenuMessageId, setActiveMenuMessageId] = useState(null)
   const [deleteConfirmMessageId, setDeleteConfirmMessageId] = useState(null)
+  const [replyingToMessage, setReplyingToMessage] = useState(null)
+  const [highlightedMessageId, setHighlightedMessageId] = useState(null)
   const messagesEndRef = useRef(null)
   const typingTimeoutRef = useRef(null)
   const textareaRef = useRef(null)
@@ -263,32 +265,38 @@ function ChatArea() {
       })
       
       Promise.all(attachmentsPromises).then(attachments => {
+        const replyId = replyingToMessage ? replyingToMessage.id : null
         if (currentRoom) {
-          ws.sendMessage(messageInput || '', currentRoom.id, null, null, null, null, attachments)
+          ws.sendMessage(messageInput || '', currentRoom.id, null, null, null, null, attachments, replyId)
         } else if (currentPrivateChat) {
-          ws.sendMessage(messageInput || '', null, currentPrivateChat.id, null, null, null, attachments)
+          ws.sendMessage(messageInput || '', null, currentPrivateChat.id, null, null, null, attachments, replyId)
         }
+        setReplyingToMessage(null)
       })
     } else if (selectedFile) {
       // Legacy single file support
       const reader = new FileReader()
       reader.onloadend = () => {
         const fileUrl = reader.result // base64 encoded
+        const replyId = replyingToMessage ? replyingToMessage.id : null
         
         if (currentRoom) {
-          ws.sendMessage(messageInput || '', currentRoom.id, null, fileUrl, selectedFile.name, selectedFile.type)
+          ws.sendMessage(messageInput || '', currentRoom.id, null, fileUrl, selectedFile.name, selectedFile.type, [], replyId)
         } else if (currentPrivateChat) {
-          ws.sendMessage(messageInput || '', null, currentPrivateChat.id, fileUrl, selectedFile.name, selectedFile.type)
+          ws.sendMessage(messageInput || '', null, currentPrivateChat.id, fileUrl, selectedFile.name, selectedFile.type, [], replyId)
         }
+        setReplyingToMessage(null)
       }
       reader.readAsDataURL(selectedFile)
     } else {
       // No file, just send text message
+      const replyId = replyingToMessage ? replyingToMessage.id : null
       if (currentRoom) {
-        ws.sendMessage(messageInput, currentRoom.id, null)
+        ws.sendMessage(messageInput, currentRoom.id, null, null, null, null, [], replyId)
       } else if (currentPrivateChat) {
-        ws.sendMessage(messageInput, null, currentPrivateChat.id)
+        ws.sendMessage(messageInput, null, currentPrivateChat.id, null, null, null, [], replyId)
       }
+      setReplyingToMessage(null)
     }
 
     setMessageInput('')
@@ -449,6 +457,22 @@ function ChatArea() {
     setMessageInput('')
   }
 
+  const handleReplyToMessage = (msg) => {
+    setReplyingToMessage(msg)
+    setActiveMenuMessageId(null)
+    
+    // Focus on input box
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus()
+      }
+    }, 100)
+  }
+
+  const handleCancelReply = () => {
+    setReplyingToMessage(null)
+  }
+
   const showDeleteConfirmation = (messageId) => {
     setDeleteConfirmMessageId(messageId)
     setActiveMenuMessageId(null)
@@ -463,6 +487,20 @@ function ChatArea() {
 
   const toggleMessageMenu = (messageId) => {
     setActiveMenuMessageId(activeMenuMessageId === messageId ? null : messageId)
+  }
+
+  // Scroll to and highlight a message when clicking on quote
+  const scrollToMessage = (messageId) => {
+    const messageElement = document.getElementById(`message-${messageId}`)
+    if (messageElement) {
+      messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      setHighlightedMessageId(messageId)
+      
+      // Remove highlight after 2 seconds
+      setTimeout(() => {
+        setHighlightedMessageId(null)
+      }, 2000)
+    }
   }
 
   // Helper to render message text content
@@ -480,42 +518,64 @@ function ChatArea() {
 
     return (
       <div className="message-text-container">
-        <div className="message-text">
-          {msg.content}
-          {msg.is_edited && <span className="edited-indicator"> (edited)</span>}
-        </div>
-        {isCurrentUser && (
-          <div className="message-actions-wrapper">
-            <button 
-              className="message-menu-toggle-btn" 
-              onClick={(e) => {
-                e.stopPropagation()
-                toggleMessageMenu(msg.id)
-              }}
-              title="Message options"
-            >
-              <FaEllipsisV />
-            </button>
-            {activeMenuMessageId === msg.id && (
-              <div className="message-actions-popup" ref={menuRef}>
-                <button 
-                  className="message-action-btn" 
-                  onClick={() => handleEditMessage(msg)}
-                  title="Edit message"
-                >
-                  <FaEdit />
-                </button>
-                <button 
-                  className="message-action-btn" 
-                  onClick={() => showDeleteConfirmation(msg.id)}
-                  title="Delete message"
-                >
-                  <FaTrash />
-                </button>
-              </div>
-            )}
+        {msg.reply_to && (
+          <div 
+            className="quoted-message" 
+            onClick={() => scrollToMessage(msg.reply_to.id)}
+          >
+            <div className="quote-content">
+              <span className="quote-author">{msg.reply_to.sender_username}</span>
+              <span className="quote-text">{msg.reply_to.content}</span>
+            </div>
           </div>
         )}
+        <div className="message-text-with-actions">
+          <div className="message-text">
+            {msg.content}
+            {msg.is_edited && <span className="edited-indicator"> (edited)</span>}
+          </div>
+          <div className="message-actions-wrapper">
+          <button 
+            className="message-menu-toggle-btn" 
+            onClick={(e) => {
+              e.stopPropagation()
+              toggleMessageMenu(msg.id)
+            }}
+            title="Message options"
+          >
+            <FaEllipsisV />
+          </button>
+          {activeMenuMessageId === msg.id && (
+            <div className="message-actions-popup" ref={menuRef}>
+              <button 
+                className="message-action-btn" 
+                onClick={() => handleReplyToMessage(msg)}
+                title="Reply to message"
+              >
+                <FaReply />
+              </button>
+              {isCurrentUser && (
+                <>
+                  <button 
+                    className="message-action-btn" 
+                    onClick={() => handleEditMessage(msg)}
+                    title="Edit message"
+                  >
+                    <FaEdit />
+                  </button>
+                  <button 
+                    className="message-action-btn" 
+                    onClick={() => showDeleteConfirmation(msg.id)}
+                    title="Delete message"
+                  >
+                    <FaTrash />
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+          </div>
+        </div>
       </div>
     )
   }
@@ -616,7 +676,10 @@ function ChatArea() {
 
               return (
                 <React.Fragment key={msg.id}>
-                  <div className={`message ${showAvatar ? 'with-avatar' : ''} ${isCurrentUser ? 'own-message' : 'other-message'}`}>
+                  <div 
+                    id={`message-${msg.id}`}
+                    className={`message ${showAvatar ? 'with-avatar' : ''} ${isCurrentUser ? 'own-message' : 'other-message'} ${highlightedMessageId === msg.id ? 'highlighted' : ''}`}
+                  >
                     {showAvatar ? (
                       <div className="message-header">
                         {!isCurrentUser && (
@@ -636,6 +699,17 @@ function ChatArea() {
                             {msg.attachments && msg.attachments.length > 0 ? (
                               // Message with multiple attachments
                               <div className="message-with-attachment">
+                                {msg.reply_to && (
+                                  <div 
+                                    className="quoted-message"
+                                    onClick={() => scrollToMessage(msg.reply_to.id)}
+                                  >
+                                    <div className="quote-content">
+                                      <span className="quote-author">{msg.reply_to.sender_username}</span>
+                                      <span className="quote-text">{msg.reply_to.content}</span>
+                                    </div>
+                                  </div>
+                                )}
                                 {msg.content && (
                                   <div className="attachment-text">
                                     {msg.content}
@@ -668,6 +742,17 @@ function ChatArea() {
                             ) : msg.file_url ? (
                               // Legacy single file attachment
                               <div className="message-with-attachment">
+                                {msg.reply_to && (
+                                  <div 
+                                    className="quoted-message"
+                                    onClick={() => scrollToMessage(msg.reply_to.id)}
+                                  >
+                                    <div className="quote-content">
+                                      <span className="quote-author">{msg.reply_to.sender_username}</span>
+                                      <span className="quote-text">{msg.reply_to.content}</span>
+                                    </div>
+                                  </div>
+                                )}
                                 {msg.content && (
                                   <div className="attachment-text">
                                     {msg.content}
@@ -714,6 +799,17 @@ function ChatArea() {
                           <>
                             {(msg.attachments && msg.attachments.length > 0) || msg.file_url ? (
                               <div className="message-with-attachment">
+                                {msg.reply_to && (
+                                  <div 
+                                    className="quoted-message"
+                                    onClick={() => scrollToMessage(msg.reply_to.id)}
+                                  >
+                                    <div className="quote-content">
+                                      <span className="quote-author">{msg.reply_to.sender_username}</span>
+                                      <span className="quote-text">{msg.reply_to.content}</span>
+                                    </div>
+                                  </div>
+                                )}
                                 {msg.content && (
                                   <div className="attachment-text">
                                     {msg.content}
@@ -777,6 +873,17 @@ function ChatArea() {
                             <span className="message-time-compact">{formatTime(msg.created_at)}</span>
                             {(msg.attachments && msg.attachments.length > 0) || msg.file_url ? (
                               <div className="message-with-attachment">
+                                {msg.reply_to && (
+                                  <div 
+                                    className="quoted-message"
+                                    onClick={() => scrollToMessage(msg.reply_to.id)}
+                                  >
+                                    <div className="quote-content">
+                                      <span className="quote-author">{msg.reply_to.sender_username}</span>
+                                      <span className="quote-text">{msg.reply_to.content}</span>
+                                    </div>
+                                  </div>
+                                )}
                                 {msg.content && (
                                   <div className="attachment-text">
                                     {msg.content}
@@ -896,6 +1003,23 @@ function ChatArea() {
           <div className="editing-indicator">
             <span>✏️ Editing message - Press Esc to cancel</span>
             <button type="button" className="cancel-edit-btn" onClick={handleCancelEdit}>
+              <FaTimes />
+            </button>
+          </div>
+        )}
+        {replyingToMessage && (
+          <div className="replying-indicator">
+            <div className="reply-info">
+              <FaReply className="reply-icon" />
+              <div className="reply-details">
+                <span className="reply-to-user">Replying to {replyingToMessage.sender_username}</span>
+                <span className="reply-content-preview">
+                  {replyingToMessage.content?.substring(0, 50)}
+                  {replyingToMessage.content?.length > 50 && '...'}
+                </span>
+              </div>
+            </div>
+            <button type="button" className="cancel-reply-btn" onClick={handleCancelReply}>
               <FaTimes />
             </button>
           </div>

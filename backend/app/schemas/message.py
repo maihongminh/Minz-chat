@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from datetime import datetime
 from .attachment import AttachmentResponse
 
@@ -26,6 +26,7 @@ class MessageResponse(MessageBase):
     file_name: Optional[str] = None
     file_type: Optional[str] = None
     attachments: List[AttachmentResponse] = []
+    reply_to: Optional[Dict[str, Any]] = None
     
     class Config:
         from_attributes = True

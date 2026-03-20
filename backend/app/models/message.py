@@ -24,6 +24,7 @@ class Message(Base):
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
     is_edited = Column(Boolean, default=False)
     is_deleted = Column(Boolean, default=False)
+    reply_to_message_id = Column(Integer, ForeignKey("messages.id"), nullable=True)
     
     # Legacy file attachments (kept for backward compatibility)
     file_url = Column(Text, nullable=True)  # URL or base64 data for file
@@ -35,3 +36,6 @@ class Message(Base):
     room = relationship("Room", back_populates="messages")
     read_by = relationship("User", secondary=message_reads, backref="read_messages")
     attachments = relationship("Attachment", back_populates="message", cascade="all, delete-orphan")
+    
+    # Reply relationship - self-referential
+    reply_to = relationship("Message", remote_side=[id], foreign_keys=[reply_to_message_id])

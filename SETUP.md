@@ -85,23 +85,48 @@ npm install
 yarn install
 ```
 
-### 5. Run Database Migration
+### 5. Run Database Migrations
+
+**For New Installations:**
 
 ```bash
 cd first-chat/backend
 source venv/bin/activate  # or venv\Scripts\activate on Windows
 
-# Run migration to create attachments table (v2.0)
-python3 apply_migration.py
+# Initialize database (creates all tables)
+python3 init_db.py
 ```
 
-You should see:
+**For Existing Installations (Upgrading):**
+
+If you're upgrading from a previous version, run these migrations in order:
+
+```bash
+cd first-chat/backend
+source venv/bin/activate  # or venv\Scripts\activate on Windows
+
+# Migration 1: Add attachments table (v2.0)
+python3 apply_migration.py
+
+# Migration 2: Add reply_to_message_id column (v2.2)
+python3 add_reply_column.py
 ```
+
+You should see output like:
+```
+# For apply_migration.py:
 Applying migration: Create attachments table...
 ✓ Migration applied successfully!
 ✓ Attachments table created
 ✓ Index created on message_id
+
+# For add_reply_column.py:
+✓ Column reply_to_message_id already exists
+# OR
+✓ Column reply_to_message_id added successfully!
 ```
+
+**⚠️ Important:** Always backup your database before running migrations!
 
 ### 6. Run the Application
 

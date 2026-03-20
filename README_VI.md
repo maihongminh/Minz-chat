@@ -73,7 +73,11 @@ Xem chi tiết trong file **QUICKSTART.md**
 - ✅ Hiển thị attachments dạng grid
 - ✅ **Chỉnh sửa tin nhắn** - Edit tin nhắn đã gửi với inline editing 🆕
 - ✅ **Xóa tin nhắn** - Xóa cho mình hoặc xóa cho mọi người 🆕
-- ✅ **Menu hành động** - Nút 3 chấm khi hover với tùy chọn Edit/Delete 🆕
+- ✅ **Trả lời tin nhắn** - Trích dẫn và trả lời bất kỳ tin nhắn nào 🆕
+  - Click icon reply để trích dẫn tin nhắn
+  - Click vào quote để nhảy đến tin nhắn gốc với hiệu ứng mượt mà
+  - Hỗ trợ text, hình ảnh và file đính kèm
+- ✅ **Menu hành động** - Nút 3 chấm khi hover với tùy chọn Edit/Delete/Reply 🆕
 
 ### 🛡️ Admin Panel
 - ✅ Dashboard với statistics

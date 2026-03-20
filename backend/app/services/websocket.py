@@ -129,6 +129,7 @@ async def handle_websocket_message(data: dict, user: User, db: Session):
         content = data.get("content", "")
         room_id = data.get("room_id")
         receiver_id = data.get("receiver_id")
+        reply_to_message_id = data.get("reply_to_message_id")
         
         # File attachment data (legacy - single file)
         file_url = data.get("file_url")
@@ -152,7 +153,8 @@ async def handle_websocket_message(data: dict, user: User, db: Session):
             is_private=is_private,
             file_url=file_url,
             file_name=file_name,
-            file_type=file_type
+            file_type=file_type,
+            reply_to_message_id=reply_to_message_id
         )
         
         db.add(new_message)
@@ -191,6 +193,20 @@ async def handle_websocket_message(data: dict, user: User, db: Session):
             for att in attachment_objects
         ]
         
+        # Get reply_to message info if exists
+        reply_to_data = None
+        if reply_to_message_id:
+            reply_msg = db.query(Message).filter(Message.id == reply_to_message_id).first()
+            if reply_msg:
+                reply_sender = db.query(User).filter(User.id == reply_msg.sender_id).first()
+                reply_to_data = {
+                    "id": reply_msg.id,
+                    "content": reply_msg.content,
+                    "sender_id": reply_msg.sender_id,
+                    "sender_username": reply_sender.username if reply_sender else "Unknown",
+                    "created_at": reply_msg.created_at.isoformat() if reply_msg.created_at else None
+                }
+        
         # Prepare message to send
         message_data = {
             "type": "chat_message",
@@ -207,7 +223,8 @@ async def handle_websocket_message(data: dict, user: User, db: Session):
             "file_url": file_url,
             "file_name": file_name,
             "file_type": file_type,
-            "attachments": attachments_response
+            "attachments": attachments_response,
+            "reply_to": reply_to_data
         }
         
         # Send to appropriate recipients

@@ -1,5 +1,71 @@
 # Changelog - Minz Chat Application
 
+## [v2.2.0] - 2026-03-20
+
+### 🎯 Reply to Messages Feature
+
+#### Added
+- **Reply to Messages**: Users can now reply to any message in the chat
+  - Click the reply icon (↩️) in message actions menu to quote a message
+  - Quoted message appears in the input area with option to cancel
+  - Reply messages show a quote box with original message preview
+  - Click on quote box to jump to the original message with smooth scroll and highlight animation
+
+#### Features
+- **Message Quoting**:
+  - Visual quote box showing sender name and message preview
+  - Supports quoting text-only messages, messages with attachments, and file messages
+  - Works in both regular messages and compact mode
+  - Consistent alignment with message content
+  
+- **Navigation**:
+  - Click on any quote to scroll to the original message
+  - Original message highlights with blue animation for 2 seconds
+  - Smooth scroll animation for better UX
+
+#### Database Changes
+- Added `reply_to_message_id` column to `messages` table (INTEGER, nullable, Foreign Key)
+- Added relationship to support message threading
+- Migration script provided: `backend/add_reply_column.py`
+
+**⚠️ Important for Existing Installations:**
+
+If you're upgrading from a previous version, you **MUST** run the migration script:
+
+```bash
+cd backend
+python3 add_reply_column.py
+```
+
+This will add the `reply_to_message_id` column to your existing `messages` table.
+
+#### Modified Files
+
+**Backend:**
+- `backend/app/models/message.py` - Added `reply_to_message_id` field and `reply_to` relationship
+- `backend/app/schemas/message.py` - Added `reply_to` field to `MessageResponse` schema
+- `backend/app/api/messages.py` - Updated `_build_message_response` to include reply_to data
+- `backend/app/services/websocket.py` - Added support for `reply_to_message_id` in send_message handler
+- `backend/add_reply_column.py` - **NEW**: Migration script for existing databases
+
+**Frontend:**
+- `frontend/src/components/ChatArea.jsx`:
+  - Added reply button to message actions menu
+  - Added replying indicator UI at bottom of chat
+  - Added quote rendering in all message types (5 locations)
+  - Added `scrollToMessage()` function for click-to-scroll
+  - Added `highlightedMessageId` state for animation
+  - Added unique `id` attribute to each message element
+- `frontend/src/pages/Chat.jsx` - Cleaned up debug logs
+- `frontend/src/services/websocket.js` - Added `replyToMessageId` parameter to `sendMessage()`
+- `frontend/src/styles/chatarea.css`:
+  - Added `.quoted-message` styles with hover effects
+  - Added `.replying-indicator` styles
+  - Added `.highlighted` class with `highlightPulse` animation
+  - Fixed message alignment for compact mode with `margin-left: 56px`
+
+---
+
 ## [v2.1.0] - 2026-03-19
 
 ### 🎉 Major Features

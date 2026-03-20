@@ -10,6 +10,54 @@ from .auth import get_current_user
 
 router = APIRouter(prefix="/messages", tags=["Messages"])
 
+def _build_message_response(msg: Message, db: Session):
+    """Helper function to build message response with all related data"""
+    sender = db.query(User).filter(User.id == msg.sender_id).first()
+    
+    # Get read receipts
+    read_by_users = db.execute(
+        message_reads.select().where(message_reads.c.message_id == msg.id)
+    ).fetchall()
+    read_by_ids = [r.user_id for r in read_by_users]
+    
+    # Get attachments
+    attachments = db.query(Attachment).filter(Attachment.message_id == msg.id).all()
+    attachments_data = [
+        {
+            "id": att.id,
+            "message_id": att.message_id,
+            "file_url": att.file_url,
+            "file_name": att.file_name,
+            "file_type": att.file_type,
+            "file_size": att.file_size,
+            "created_at": att.created_at.isoformat()
+        }
+        for att in attachments
+    ]
+    
+    # Get reply_to message info if exists
+    reply_to_data = None
+    if hasattr(msg, 'reply_to_message_id') and msg.reply_to_message_id:
+        reply_msg = db.query(Message).filter(Message.id == msg.reply_to_message_id).first()
+        if reply_msg:
+            reply_sender = db.query(User).filter(User.id == reply_msg.sender_id).first()
+            reply_to_data = {
+                "id": reply_msg.id,
+                "content": reply_msg.content,
+                "sender_id": reply_msg.sender_id,
+                "sender_username": reply_sender.username if reply_sender else "Unknown",
+                "created_at": reply_msg.created_at.isoformat() if reply_msg.created_at else None
+            }
+    
+    return {
+        **msg.__dict__,
+        "sender_username": sender.username if sender else "Unknown",
+        "sender_avatar": sender.avatar_url if sender else None,
+        "read_by": read_by_ids,
+        "attachments": attachments_data,
+        "reply_to": reply_to_data
+    }
+
 @router.post("/", response_model=MessageResponse)
 async def send_message(
     message_data: MessageCreate,
@@ -53,39 +101,8 @@ async def get_room_messages(
         Message.is_deleted == False
     ).order_by(Message.created_at.desc()).limit(limit).offset(offset).all()
     
-    # Add sender info and read receipts
-    result = []
-    for msg in messages:
-        sender = db.query(User).filter(User.id == msg.sender_id).first()
-        
-        # Get read receipts for this message
-        read_by_users = db.execute(
-            message_reads.select().where(message_reads.c.message_id == msg.id)
-        ).fetchall()
-        read_by_ids = [r.user_id for r in read_by_users]
-        
-        # Get attachments for this message
-        attachments = db.query(Attachment).filter(Attachment.message_id == msg.id).all()
-        attachments_data = [
-            {
-                "id": att.id,
-                "message_id": att.message_id,
-                "file_url": att.file_url,
-                "file_name": att.file_name,
-                "file_type": att.file_type,
-                "file_size": att.file_size,
-                "created_at": att.created_at.isoformat()
-            }
-            for att in attachments
-        ]
-        
-        result.append({
-            **msg.__dict__,
-            "sender_username": sender.username if sender else "Unknown",
-            "sender_avatar": sender.avatar_url if sender else None,
-            "read_by": read_by_ids,
-            "attachments": attachments_data
-        })
+    # Build message responses with all related data
+    result = [_build_message_response(msg, db) for msg in messages]
     
     return list(reversed(result))
 
@@ -107,39 +124,8 @@ async def get_private_messages(
         )
     ).order_by(Message.created_at.desc()).limit(limit).offset(offset).all()
     
-    # Add sender info and read receipts
-    result = []
-    for msg in messages:
-        sender = db.query(User).filter(User.id == msg.sender_id).first()
-        
-        # Get read receipts for this message
-        read_by_users = db.execute(
-            message_reads.select().where(message_reads.c.message_id == msg.id)
-        ).fetchall()
-        read_by_ids = [r.user_id for r in read_by_users]
-        
-        # Get attachments for this message
-        attachments = db.query(Attachment).filter(Attachment.message_id == msg.id).all()
-        attachments_data = [
-            {
-                "id": att.id,
-                "message_id": att.message_id,
-                "file_url": att.file_url,
-                "file_name": att.file_name,
-                "file_type": att.file_type,
-                "file_size": att.file_size,
-                "created_at": att.created_at.isoformat()
-            }
-            for att in attachments
-        ]
-        
-        result.append({
-            **msg.__dict__,
-            "sender_username": sender.username if sender else "Unknown",
-            "sender_avatar": sender.avatar_url if sender else None,
-            "read_by": read_by_ids,
-            "attachments": attachments_data
-        })
+    # Build message responses with all related data
+    result = [_build_message_response(msg, db) for msg in messages]
     
     return list(reversed(result))
 
