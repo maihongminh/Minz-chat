@@ -4,6 +4,7 @@ from .core import Base, engine
 from .api import auth_router, users_router, rooms_router, messages_router
 from .api.websocket import router as websocket_router
 from .api.admin import router as admin_router
+from .api.reactions import router as reactions_router
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -30,6 +31,7 @@ app.include_router(rooms_router, prefix="/api")
 app.include_router(messages_router, prefix="/api")
 app.include_router(websocket_router, prefix="/api")
 app.include_router(admin_router, prefix="/api")
+app.include_router(reactions_router, prefix="/api")
 
 @app.get("/")
 async def root():

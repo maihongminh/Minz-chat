@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { FaHashtag, FaUserCircle, FaPaperPlane, FaPaperclip, FaTimes, FaFile, FaImage, FaEllipsisV, FaEdit, FaTrash, FaCheck, FaReply } from 'react-icons/fa'
+import { FaHashtag, FaUserCircle, FaPaperPlane, FaPaperclip, FaTimes, FaFile, FaImage, FaEllipsisV, FaEdit, FaTrash, FaCheck, FaReply, FaSmile } from 'react-icons/fa'
 import { useChatStore, useAuthStore } from '../utils/store'
 import { format } from 'date-fns'
 import '../styles/chatarea.css'
+import '../styles/reactions.css'
+import { reactionsAPI } from '../services/reactions'
+import ReactionPicker from './ReactionPicker'
 
 function ChatArea() {
   const { user } = useAuthStore()
@@ -18,6 +21,9 @@ function ChatArea() {
   const [deleteConfirmMessageId, setDeleteConfirmMessageId] = useState(null)
   const [replyingToMessage, setReplyingToMessage] = useState(null)
   const [highlightedMessageId, setHighlightedMessageId] = useState(null)
+  const [showReactionPicker, setShowReactionPicker] = useState(null)
+  const [reactionPickerPosition, setReactionPickerPosition] = useState(null)
+  const [messageReactions, setMessageReactions] = useState({})
   const messagesEndRef = useRef(null)
   const typingTimeoutRef = useRef(null)
   const textareaRef = useRef(null)
@@ -46,7 +52,18 @@ function ChatArea() {
 
   useEffect(() => {
     scrollToBottom()
+    messages.forEach(msg => loadMessageReactions(msg.id))
   }, [messages])
+
+  // Listen for reaction updates from WebSocket
+  useEffect(() => {
+    const handleReactionUpdate = (event) => {
+      const { messageId } = event.detail
+      loadMessageReactions(messageId)
+    }
+    window.addEventListener('reactionUpdate', handleReactionUpdate)
+    return () => window.removeEventListener('reactionUpdate', handleReactionUpdate)
+  }, [])
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -503,6 +520,51 @@ function ChatArea() {
     }
   }
 
+  // Handle reactions
+  const handleReaction = async (messageId, emoji) => {
+    try {
+      await reactionsAPI.addReaction(messageId, emoji)
+      setShowReactionPicker(null)
+    } catch (error) {
+      if (error.response?.status !== 204) {
+        console.error('Error with reaction:', error)
+      }
+    }
+  }
+
+  const loadMessageReactions = async (messageId) => {
+    try {
+      const reactions = await reactionsAPI.getReactions(messageId)
+      setMessageReactions(prev => ({
+        ...prev,
+        [messageId]: reactions
+      }))
+    } catch (error) {
+      console.error('Error loading reactions:', error)
+    }
+  }
+
+  const renderReactions = (messageId) => {
+    const reactions = messageReactions[messageId] || []
+    if (reactions.length === 0) return null
+    
+    return (
+      <div className="message-reactions">
+        {reactions.map((reaction) => (
+          <div
+            key={reaction.emoji}
+            className={`reaction-item ${reaction.user_reacted ? 'user-reacted' : ''}`}
+            onClick={() => handleReaction(messageId, reaction.emoji)}
+            title={reaction.users.join(', ')}
+          >
+            <span className="reaction-emoji">{reaction.emoji}</span>
+            <span className="reaction-count">{reaction.count}</span>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
   // Helper to render message text content
   const renderMessageContent = (msg) => {
     const isCurrentUser = msg.sender_id === user.id
@@ -534,6 +596,7 @@ function ChatArea() {
             {msg.content}
             {msg.is_edited && <span className="edited-indicator"> (edited)</span>}
           </div>
+          {renderReactions(msg.id)}
           <div className="message-actions-wrapper">
           <button 
             className="message-menu-toggle-btn" 
@@ -547,6 +610,18 @@ function ChatArea() {
           </button>
           {activeMenuMessageId === msg.id && (
             <div className="message-actions-popup" ref={menuRef}>
+              <button 
+                className="message-action-btn" 
+                onClick={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect()
+                  setReactionPickerPosition({ x: rect.left, y: rect.bottom + 5 })
+                  setShowReactionPicker(msg.id)
+                  setActiveMenuMessageId(null)
+                }}
+                title="Add reaction"
+              >
+                <FaSmile />
+              </button>
               <button 
                 className="message-action-btn" 
                 onClick={() => handleReplyToMessage(msg)}
@@ -944,7 +1019,7 @@ function ChatArea() {
                       </div>
                     )}
                   </div>
-                  
+
                   {showSeenIndicator && (
                     <div className={`seen-receipt ${isCurrentUser ? 'own-message' : 'other-message'}`}>
                       {seenStatus === 'seen' ? (
@@ -1112,6 +1187,18 @@ function ChatArea() {
           </button>
         </form>
       </div>
+
+      {/* Reaction Picker */}
+      {showReactionPicker && (
+        <ReactionPicker
+          position={reactionPickerPosition}
+          onSelect={(emoji) => handleReaction(showReactionPicker, emoji)}
+          onClose={() => {
+            setShowReactionPicker(null)
+            setReactionPickerPosition(null)
+          }}
+        />
+      )}
     </div>
   )
 }

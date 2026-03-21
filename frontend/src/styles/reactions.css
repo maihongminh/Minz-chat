@@ -1,0 +1,172 @@
+/* Reaction Picker */
+.reaction-picker-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  background: transparent;
+}
+
+.reaction-picker {
+  position: fixed;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 6px;
+  display: flex;
+  gap: 3px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.15s ease-out;
+  z-index: 1001;
+  transform: translateY(0);
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.reaction-emoji-btn {
+  background: transparent;
+  border: none;
+  font-size: 18px;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.reaction-emoji-btn:hover {
+  background: var(--bg-secondary);
+  transform: scale(1.15);
+}
+
+/* Reactions Display - Compact Style */
+.message-reactions {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 3px;
+  padding: 2px 4px;
+  position: absolute;
+  bottom: -10px;
+  left: 8px;
+  z-index: 5;
+}
+
+/* Reactions for own messages - align right */
+.message.own-message .message-reactions {
+  left: auto;
+  right: 8px;
+}
+
+.reaction-item {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 4px;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  font-size: 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  min-height: 16px;
+}
+
+.reaction-item:hover {
+  background: rgba(255, 255, 255, 0.22);
+  border-color: rgba(255, 255, 255, 0.35);
+  transform: scale(1.05);
+}
+
+.reaction-item.user-reacted {
+  background: rgba(88, 101, 242, 0.35);
+  border-color: rgba(88, 101, 242, 0.65);
+}
+
+.reaction-item.user-reacted:hover {
+  background: rgba(88, 101, 242, 0.45);
+  border-color: rgba(88, 101, 242, 0.75);
+}
+
+.reaction-emoji {
+  font-size: 11px;
+  line-height: 1;
+}
+
+.reaction-count {
+  font-size: 9px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  min-width: 8px;
+  text-align: center;
+}
+
+.reaction-item.user-reacted .reaction-count {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* Add Reaction Button */
+.reaction-add-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 28px;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  color: var(--text-secondary);
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.reaction-add-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(88, 101, 242, 0.4);
+  color: var(--accent-color);
+  transform: scale(1.05);
+}
+
+/* Reaction animation */
+.reaction-item.just-added {
+  animation: reactionPop 0.3s ease-out;
+}
+
+@keyframes reactionPop {
+  0% {
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Reaction button in message actions */
+.message-action-btn.reaction-btn {
+  position: relative;
+}
+
+/* Add extra margin to messages that have reactions */
+.message:has(.message-reactions:not(:empty)) {
+  margin-bottom: 12px;
+}

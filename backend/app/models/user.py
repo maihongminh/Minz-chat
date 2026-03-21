@@ -30,6 +30,7 @@ class User(Base):
     # Relationships
     sent_messages = relationship("Message", foreign_keys="Message.sender_id", back_populates="sender")
     rooms = relationship("RoomMember", back_populates="user")
+    reactions = relationship("MessageReaction", back_populates="user", cascade="all, delete-orphan")
     
     def is_admin(self) -> bool:
         return self.role in [UserRole.ADMIN, UserRole.SUPER_ADMIN]

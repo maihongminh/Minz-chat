@@ -110,6 +110,9 @@ python3 apply_migration.py
 
 # Migration 2: Add reply_to_message_id column (v2.2)
 python3 add_reply_column.py
+
+# Migration 3: Add message_reactions table (v2.3)
+python3 add_reactions_table.py
 ```
 
 You should see output like:
@@ -124,6 +127,14 @@ Applying migration: Create attachments table...
 ✓ Column reply_to_message_id already exists
 # OR
 ✓ Column reply_to_message_id added successfully!
+
+# For add_reactions_table.py:
+ℹ️  Table message_reactions already exists
+# OR
+Creating message_reactions table...
+✓ Table message_reactions created successfully!
+✓ Index created on message_id
+✓ Unique constraint added for (message_id, user_id, emoji)
 ```
 
 **⚠️ Important:** Always backup your database before running migrations!

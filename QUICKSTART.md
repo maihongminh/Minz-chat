@@ -220,6 +220,9 @@ python3 apply_migration.py
 
 # Migration 2: Thêm cột reply_to_message_id (v2.2)
 python3 add_reply_column.py
+
+# Migration 3: Thêm bảng message_reactions (v2.3)
+python3 add_reactions_table.py
 ```
 
 Kết quả mong đợi:
@@ -233,6 +236,14 @@ Applying migration: Create attachments table...
 ✓ Column reply_to_message_id added successfully!
 # hoặc nếu đã có:
 ℹ️  Column reply_to_message_id already exists
+
+# add_reactions_table.py:
+Creating message_reactions table...
+✓ Table message_reactions created successfully!
+✓ Index created on message_id
+✓ Unique constraint added for (message_id, user_id, emoji)
+# hoặc nếu đã có:
+ℹ️  Table message_reactions already exists
 ```
 
 **💡 Lưu ý:** Luôn backup database trước khi chạy migration!
@@ -605,7 +616,10 @@ npm run dev
 - ✅ **Edit messages** - Sửa tin nhắn đã gửi
 - ✅ **Delete messages** - Xóa cho mình hoặc cho mọi người
 - ✅ **Reply to messages** - Trích dẫn và trả lời tin nhắn (v2.2.0)
-- ✅ **Message actions menu** - Menu 3 chấm với Edit/Delete/Reply
+- ✅ **Message reactions** - Thả emoji phản ứng vào tin nhắn (v2.3.0)
+  - 6 emoji: 👍 ❤️ 😂 😮 😢 🙏
+  - Click để thêm/xóa, realtime updates
+- ✅ **Message actions menu** - Menu 3 chấm với Reaction/Edit/Delete/Reply
 - ✅ **Read receipts** - Hiển thị trạng thái đã đọc
 - ✅ **Typing indicators** - Hiển thị ai đang gõ
 

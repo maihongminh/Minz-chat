@@ -157,6 +157,20 @@ function Chat() {
         }
         break
       
+      case 'reaction':
+        // Handle reaction add/remove
+        // Trigger a custom event that ChatArea can listen to
+        window.dispatchEvent(new CustomEvent('reactionUpdate', {
+          detail: {
+            messageId: data.message_id,
+            userId: data.user_id,
+            username: data.username,
+            emoji: data.emoji,
+            action: data.action
+          }
+        }))
+        break
+      
       default:
         console.log('Unknown message type:', data.type)
     }

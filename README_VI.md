@@ -77,7 +77,12 @@ Xem chi tiết trong file **QUICKSTART.md**
   - Click icon reply để trích dẫn tin nhắn
   - Click vào quote để nhảy đến tin nhắn gốc với hiệu ứng mượt mà
   - Hỗ trợ text, hình ảnh và file đính kèm
-- ✅ **Menu hành động** - Nút 3 chấm khi hover với tùy chọn Edit/Delete/Reply 🆕
+- ✅ **Reactions emoji** - Thả emoji phản ứng vào tin nhắn 🆕
+  - 6 emoji: 👍 ❤️ 😂 😮 😢 🙏
+  - Click để thêm/xóa reaction
+  - Cập nhật realtime, hoạt động cả room và private chat
+  - Tự động căn chỉnh vị trí thông minh
+- ✅ **Menu hành động** - Nút 3 chấm khi hover với tùy chọn Reaction/Edit/Delete/Reply 🆕
 
 ### 🛡️ Admin Panel
 - ✅ Dashboard với statistics

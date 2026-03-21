@@ -33,7 +33,12 @@ A modern real-time chat application built with **FastAPI** (Python) and **React*
   - Click reply icon to quote a message
   - Click on quote to jump to original message with smooth animation
   - Works with text, images, and file attachments
-- **Message actions menu** - 3-dot menu on hover with Edit/Delete/Reply options 🆕
+- **Message reactions** - React to messages with emoji 🆕
+  - 6 emoji reactions: 👍 ❤️ 😂 😮 😢 🙏
+  - Click to add/remove reactions
+  - Realtime updates, works in rooms and private messages
+  - Smart spacing and positioning
+- **Message actions menu** - 3-dot menu on hover with Reaction/Edit/Delete/Reply options 🆕
 
 ✅ **Modern UI**
 - Discord-inspired dark theme
@@ -84,14 +89,19 @@ GRANT ALL PRIVILEGES ON DATABASE chatdb TO chatuser;
 
 **⚠️ For Existing Installations (Upgrading):**
 
-If you're upgrading from a previous version, you need to run the migration script to add the `reply_to_message_id` column:
+If you're upgrading from a previous version, you need to run migration scripts:
 
 ```bash
 cd backend
+
+# Migration 1: Add reply_to_message_id column (v2.2)
 python3 add_reply_column.py
+
+# Migration 2: Add message_reactions table (v2.3)
+python3 add_reactions_table.py
 ```
 
-This migration adds support for the reply-to-messages feature.
+These migrations add support for reply-to-messages and reactions features.
 
 ### 2. Backend Setup
 

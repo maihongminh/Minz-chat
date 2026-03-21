@@ -36,6 +36,7 @@ class Message(Base):
     room = relationship("Room", back_populates="messages")
     read_by = relationship("User", secondary=message_reads, backref="read_messages")
     attachments = relationship("Attachment", back_populates="message", cascade="all, delete-orphan")
+    reactions = relationship("MessageReaction", back_populates="message", cascade="all, delete-orphan")
     
     # Reply relationship - self-referential
     reply_to = relationship("Message", remote_side=[id], foreign_keys=[reply_to_message_id])

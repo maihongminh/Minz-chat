@@ -1,5 +1,75 @@
 # Changelog - Minz Chat Application
 
+## [v2.3.0] - 2026-03-21
+
+### 🎉 Message Reactions Feature
+
+#### Added
+- **Message Reactions**: Users can now react to any message with emoji reactions
+  - 6 emoji options: 👍 ❤️ 😂 😮 😢 🙏
+  - Click smile icon (😊) in message menu to add reactions
+  - Click reaction to toggle (add/remove)
+  - Reactions display inline below messages
+  - Realtime updates via WebSocket
+  - Works in both Rooms and Private messages
+
+#### Features
+- **Compact Design**: Small, inline reactions that don't disrupt message flow
+- **Smart Spacing**: Messages with reactions automatically get extra spacing
+- **Position Aware**: Reactions align left for others, right for your messages
+- **Visual Feedback**: Highlighted background for your reactions
+- **Counter Display**: Shows how many users reacted
+- **Hover Tooltip**: See who reacted by hovering over reaction
+
+#### Database Changes
+- Added `message_reactions` table with columns:
+  - `id` (Primary Key)
+  - `message_id` (Foreign Key to messages)
+  - `user_id` (Foreign Key to users)
+  - `emoji` (VARCHAR(10))
+  - `created_at` (TIMESTAMP)
+  - Unique constraint on (message_id, user_id, emoji)
+
+**⚠️ Important for Existing Installations:**
+
+If you're upgrading from a previous version, you **MUST** run the migration script:
+
+```bash
+cd first-chat/backend
+python3 add_reactions_table.py
+```
+
+This will create the `message_reactions` table.
+
+#### Modified Files
+
+**Backend (10 files):**
+- `backend/app/models/reaction.py` - **NEW**: Reaction model
+- `backend/app/schemas/reaction.py` - **NEW**: Reaction schemas
+- `backend/app/api/reactions.py` - **NEW**: Reaction API endpoints
+- `backend/add_reactions_table.py` - **NEW**: Migration script
+- `backend/app/models/__init__.py` - Added MessageReaction export
+- `backend/app/models/message.py` - Added reactions relationship
+- `backend/app/models/user.py` - Added reactions relationship
+- `backend/app/schemas/__init__.py` - Added reaction schemas
+- `backend/app/services/websocket.py` - Added broadcast_reaction method
+- `backend/app/main.py` - Registered reactions router
+
+**Frontend (5 files):**
+- `frontend/src/components/ReactionPicker.jsx` - **NEW**: Emoji picker modal
+- `frontend/src/services/reactions.js` - **NEW**: Reactions API service
+- `frontend/src/styles/reactions.css` - **NEW**: Reactions styles
+- `frontend/src/components/ChatArea.jsx` - Added reaction UI and handlers
+- `frontend/src/pages/Chat.jsx` - Added WebSocket reaction event handler
+
+#### Technical Details
+- REST API: POST/DELETE/GET `/api/reactions/messages/{id}`
+- WebSocket event type: `reaction` with actions: `add`, `remove`
+- CSS: Smart spacing with `:has()` selector
+- Position: Absolute positioning, adapts to message side
+
+---
+
 ## [v2.2.0] - 2026-03-20
 
 ### 🎯 Reply to Messages Feature

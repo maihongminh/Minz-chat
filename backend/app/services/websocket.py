@@ -90,6 +90,34 @@ class ConnectionManager:
         """Get list of all online user IDs"""
         return list(self.active_connections.keys())
     
+    async def broadcast_reaction(self, room_id: int, message_id: int, user_id: int, username: str, emoji: str, action: str):
+        """Broadcast reaction add/remove to all users in the room
+        
+        Args:
+            room_id: The room where the message is
+            message_id: The message that was reacted to
+            user_id: The user who reacted
+            username: Username of the reactor
+            emoji: The emoji reaction
+            action: 'add' or 'remove'
+        """
+        if room_id not in self.room_users:
+            return
+        
+        message = {
+            "type": "reaction",
+            "action": action,  # 'add' or 'remove'
+            "message_id": message_id,
+            "user_id": user_id,
+            "username": username,
+            "emoji": emoji,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+        # Send to all users in the room
+        for uid in list(self.room_users[room_id]):
+            await self.send_personal_message(message, uid)
+    
     def is_user_online(self, user_id: int) -> bool:
         """Check if a user is online"""
         return user_id in self.active_connections
