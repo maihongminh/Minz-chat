@@ -6,6 +6,7 @@ import { WebSocketService } from '../services/websocket'
 import Sidebar from '../components/Sidebar'
 import ChatArea from '../components/ChatArea'
 import UserList from '../components/UserList'
+import MobileHome from '../components/MobileHome'
 import '../styles/chat.css'
 
 // Global flag to prevent duplicate initialization
@@ -15,9 +16,22 @@ let isInitialized = false
 function Chat() {
   const navigate = useNavigate()
   const { token, user, logout } = useAuthStore()
-  const { setWs, setRooms, setOnlineUsers, addMessage, updateUserStatus, setMessages, currentRoom, currentPrivateChat, incrementUnreadRoom, incrementUnreadPrivateChat, setTyping, updateMessageReadReceipt, setMessageReadReceipts, updateMessage, deleteMessageLocally, hideMessage } = useChatStore()
-  const [users, setUsers] = useState([])
+  const { setWs, setRooms, setUsers, setOnlineUsers, addMessage, updateUserStatus, setMessages, currentRoom, currentPrivateChat, setCurrentRoom, setCurrentPrivateChat, incrementUnreadRoom, incrementUnreadPrivateChat, setTyping, updateMessageReadReceipt, setMessageReadReceipts, updateMessage, deleteMessageLocally, hideMessage, ws } = useChatStore()
   const [loading, setLoading] = useState(true)
+  const [isMobile, setIsMobile] = useState(false)
+  const [showMobileHome, setShowMobileHome] = useState(true)
+
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth <= 768
+      setIsMobile(mobile)
+    }
+    
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   useEffect(() => {
     if (!token) {
@@ -236,6 +250,29 @@ function Chat() {
     navigate('/login')
   }
 
+  const handleSelectRoom = (room) => {
+    setCurrentRoom(room)
+    if (ws) {
+      ws.joinRoom(room.id)
+    }
+    if (isMobile) {
+      setShowMobileHome(false)
+    }
+  }
+
+  const handleSelectPrivateChat = (user) => {
+    setCurrentPrivateChat(user)
+    if (isMobile) {
+      setShowMobileHome(false)
+    }
+  }
+
+  const handleBackToHome = () => {
+    setShowMobileHome(true)
+    setCurrentRoom(null)
+    setCurrentPrivateChat(null)
+  }
+
   if (loading) {
     return (
       <div className="loading-screen">
@@ -247,9 +284,25 @@ function Chat() {
 
   return (
     <div className="chat-container">
-      <Sidebar onLogout={handleLogout} />
-      <ChatArea />
-      <UserList users={users} />
+      {isMobile ? (
+        <>
+          {showMobileHome ? (
+            <MobileHome 
+              onSelectRoom={handleSelectRoom}
+              onSelectPrivateChat={handleSelectPrivateChat}
+              onLogout={handleLogout}
+            />
+          ) : (
+            <ChatArea onBackToHome={handleBackToHome} />
+          )}
+        </>
+      ) : (
+        <>
+          <Sidebar onLogout={handleLogout} />
+          <ChatArea />
+          <UserList />
+        </>
+      )}
     </div>
   )
 }

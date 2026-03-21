@@ -55,3 +55,25 @@
 .empty-state p {
   font-size: 16px;
 }
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .chat-container {
+    position: relative;
+  }
+
+  /* Adjust for mobile sidebar */
+  .chat-container > *:not(.sidebar):not(.sidebar-overlay) {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .empty-state h2 {
+    font-size: 20px;
+  }
+
+  .empty-state p {
+    font-size: 14px;
+  }
+}

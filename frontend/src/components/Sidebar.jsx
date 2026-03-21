@@ -1,6 +1,6 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { FaHashtag, FaPlus, FaSignOutAlt, FaUserCircle, FaUserShield, FaTimes, FaUser, FaLock } from 'react-icons/fa'
+import { FaHashtag, FaPlus, FaSignOutAlt, FaUserCircle, FaUserShield, FaTimes, FaUser, FaLock, FaBars, FaCog } from 'react-icons/fa'
 import { useChatStore, useAuthStore } from '../utils/store'
 import { roomsAPI, usersAPI } from '../services/api'
 import '../styles/sidebar.css'
@@ -9,6 +9,9 @@ function Sidebar({ onLogout }) {
   const navigate = useNavigate()
   const { user } = useAuthStore()
   const { rooms, currentRoom, setCurrentRoom, setRooms, ws, unreadRooms } = useChatStore()
+  const [isCollapsed, setIsCollapsed] = useState(false)
+  const [isMobileOpen, setIsMobileOpen] = useState(false)
+  const [showUserMenu, setShowUserMenu] = useState(false)
   const [showCreateRoom, setShowCreateRoom] = useState(false)
   const [newRoomName, setNewRoomName] = useState('')
   const [newRoomDesc, setNewRoomDesc] = useState('')
@@ -22,6 +25,56 @@ function Sidebar({ onLogout }) {
   const [confirmPassword, setConfirmPassword] = useState('')
 
   const isAdmin = user?.role === 'admin' || user?.role === 'super_admin'
+  const userMenuRef = useRef(null)
+
+  // Detect mobile screen
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth <= 768
+      setIsMobile(mobile)
+      
+      // Reset collapsed state when switching to mobile
+      if (mobile && isCollapsed) {
+        setIsCollapsed(false)
+        setIsMobileOpen(false)
+      }
+    }
+    
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [isCollapsed])
+
+  // Close user menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setShowUserMenu(false)
+      }
+    }
+
+    if (showUserMenu) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showUserMenu])
+
+  // Toggle sidebar for mobile/desktop
+  const handleToggleSidebar = () => {
+    if (isMobile) {
+      // On mobile: toggle open/close (don't use collapse)
+      setIsMobileOpen(!isMobileOpen)
+    } else {
+      // Desktop: toggle collapse
+      setIsCollapsed(!isCollapsed)
+    }
+  }
 
   const handleCreateRoom = async (e) => {
     e.preventDefault()
@@ -61,6 +114,11 @@ function Sidebar({ onLogout }) {
     }
     
     setCurrentRoom(room)
+    
+    // Close mobile sidebar when selecting a room
+    if (isMobile && !isCollapsed) {
+      setIsMobileOpen(false)
+    }
     
     // Join room in database (adds to room_members)
     try {
@@ -201,105 +259,174 @@ function Sidebar({ onLogout }) {
   }
 
   return (
-    <div className="sidebar">
-      <div className="server-header">
-        <h2>HiHi Chat</h2>
-      </div>
+    <>
+      {/* Mobile Overlay */}
+      {isMobile && isMobileOpen && (
+        <div 
+          className="sidebar-overlay" 
+          onClick={() => setIsMobileOpen(false)}
+        />
+      )}
 
-      <div className="channels-section">
-        <div className="section-header">
-          <span>TEXT CHANNELS</span>
-          {isAdmin && (
-            <button 
-              className="icon-btn" 
-              onClick={() => setShowCreateRoom(true)}
-              title="Create Channel (Admin only)"
-            >
-              <FaPlus />
-            </button>
-          )}
+      {/* Hamburger button - always visible on mobile */}
+      {isMobile && (
+        <button 
+          className="hamburger-btn" 
+          onClick={handleToggleSidebar}
+          title={isMobileOpen ? 'Đóng sidebar' : 'Mở sidebar'}
+        >
+          <FaBars />
+        </button>
+      )}
+
+      <div className={`sidebar ${isCollapsed ? 'collapsed' : ''} ${isMobile && isMobileOpen ? 'mobile-open' : ''}`}>
+        {!isMobile && (
+          <button 
+            className="hamburger-btn" 
+            onClick={handleToggleSidebar}
+            title={isCollapsed ? 'Mở rộng sidebar' : 'Thu gọn sidebar'}
+          >
+            <FaBars />
+          </button>
+        )}
+      
+        <div className="server-header">
+          <h2>HiHi Chat</h2>
         </div>
 
-        <div className="channels-list">
-          {rooms.map((room) => {
-            const unreadCount = unreadRooms[room.id] || 0
-            const hasUnread = unreadCount > 0
-            const isLocked = room.is_private && !isAdmin
-            
-            return (
-              <div
-                key={room.id}
-                className={`channel-item ${currentRoom?.id === room.id ? 'active' : ''} ${hasUnread ? 'has-unread' : ''} ${isLocked ? 'locked' : ''}`}
-                onClick={() => handleRoomClick(room)}
-                title={isLocked ? 'Private channel - Admin only' : ''}
+        <div className="channels-section">
+          <div className="section-header">
+            <span>TEXT CHANNELS</span>
+            {isAdmin && (
+              <button 
+                className="icon-btn" 
+                onClick={() => setShowCreateRoom(true)}
+                title="Create Channel (Admin only)"
               >
-                <div className="channel-icon-wrapper">
-                  <FaHashtag className="channel-icon" />
-                  {room.is_private && (
-                    <FaLock className="lock-icon" />
-                  )}
-                </div>
-                <span className="channel-name">{room.name}</span>
-                <div className="channel-actions">
-                  {hasUnread && (
-                    <span className="unread-badge">{unreadCount}</span>
-                  )}
-                  {room.member_count > 0 && !hasUnread && (
-                    <span className="member-count">{room.member_count}</span>
-                  )}
-                  {isAdmin && (
-                    <button
-                      className="icon-btn-small delete-btn"
-                      onClick={(e) => handleDeleteRoom(e, room)}
-                      title="Delete channel"
-                    >
-                      <FaTimes />
-                    </button>
-                  )}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      </div>
+                <FaPlus />
+              </button>
+            )}
+          </div>
 
-      <div className="user-panel">
-        <div className="user-info">
-          {user?.avatar_url ? (
-            <img src={user.avatar_url} alt={user.username} className="user-avatar" />
-          ) : (
-            <FaUserCircle className="user-avatar-default" />
-          )}
-          <div className="user-details">
-            <div className="username">
-              {user?.username}
-              {isAdmin && <span className="admin-badge" title={user.role}>👑</span>}
-            </div>
-            <div className="user-status">Online</div>
+          <div className="channels-list">
+            {rooms.map((room) => {
+              const unreadCount = unreadRooms[room.id] || 0
+              const hasUnread = unreadCount > 0
+              const isLocked = room.is_private && !isAdmin
+              
+              return (
+                <div
+                  key={room.id}
+                  className={`channel-item ${currentRoom?.id === room.id ? 'active' : ''} ${hasUnread ? 'has-unread' : ''} ${isLocked ? 'locked' : ''}`}
+                  onClick={() => handleRoomClick(room)}
+                  title={isLocked ? 'Private channel - Admin only' : ''}
+                >
+                  <div className="channel-icon-wrapper">
+                    <FaHashtag className="channel-icon" />
+                    {room.is_private && (
+                      <FaLock className="lock-icon" />
+                    )}
+                  </div>
+                  <span className="channel-name">{room.name}</span>
+                  <div className="channel-actions">
+                    {hasUnread && (
+                      <span className="unread-badge">{unreadCount}</span>
+                    )}
+                    {room.member_count > 0 && !hasUnread && (
+                      <span className="member-count">{room.member_count}</span>
+                    )}
+                    {isAdmin && (
+                      <button
+                        className="icon-btn-small delete-btn"
+                        onClick={(e) => handleDeleteRoom(e, room)}
+                        title="Delete channel"
+                      >
+                        <FaTimes />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
-        <div className="user-actions">
-          {isAdmin && (
-            <button 
-              className="icon-btn" 
-              onClick={() => navigate('/admin')} 
-              title="Admin Panel"
-            >
-              <FaUserShield />
-            </button>
+
+        <div className="user-panel">
+          {!isCollapsed ? (
+            <>
+              <div className="user-info">
+                {user?.avatar_url ? (
+                  <img src={user.avatar_url} alt={user.username} className="user-avatar" />
+                ) : (
+                  <FaUserCircle className="user-avatar-default" />
+                )}
+                <div className="user-details">
+                  <div className="username">
+                    {user?.username}
+                    {isAdmin && <span className="admin-badge" title={user.role}>👑</span>}
+                  </div>
+                  <div className="user-status">Online</div>
+                </div>
+              </div>
+              <div className="user-actions">
+                {isAdmin && (
+                  <button 
+                    className="icon-btn" 
+                    onClick={() => navigate('/admin')} 
+                    title="Admin Panel"
+                  >
+                    <FaUserShield />
+                  </button>
+                )}
+                <button 
+                  className="icon-btn" 
+                  onClick={() => setShowProfile(true)} 
+                  title="Profile Settings"
+                >
+                  <FaUser />
+                </button>
+                <button className="icon-btn" onClick={onLogout} title="Logout">
+                  <FaSignOutAlt />
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="user-menu-collapsed" ref={userMenuRef}>
+              <button 
+                className="icon-btn settings-btn" 
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                title="Settings"
+              >
+                <FaCog />
+              </button>
+              {showUserMenu && (
+                <div className="user-dropdown-menu">
+                  {isAdmin && (
+                    <button 
+                      className="menu-item" 
+                      onClick={() => { navigate('/admin'); setShowUserMenu(false); }}
+                    >
+                      <FaUserShield /> Admin Panel
+                    </button>
+                  )}
+                  <button 
+                    className="menu-item" 
+                    onClick={() => { setShowProfile(true); setShowUserMenu(false); }}
+                  >
+                    <FaUser /> Profile
+                  </button>
+                  <button 
+                    className="menu-item" 
+                    onClick={() => { onLogout(); setShowUserMenu(false); }}
+                  >
+                    <FaSignOutAlt /> Logout
+                  </button>
+                </div>
+              )}
+            </div>
           )}
-          <button 
-            className="icon-btn" 
-            onClick={() => setShowProfile(true)} 
-            title="Profile Settings"
-          >
-            <FaUser />
-          </button>
-          <button className="icon-btn" onClick={onLogout} title="Logout">
-            <FaSignOutAlt />
-          </button>
-        </div>
-      </div>
+        </div>  {/* Close user-panel */}
+      </div>  {/* Close sidebar */}
 
       {showCreateRoom && (
         <div className="modal-overlay" onClick={() => setShowCreateRoom(false)}>
@@ -381,8 +508,8 @@ function Sidebar({ onLogout }) {
                   <label htmlFor="avatar-upload" className="btn-change-avatar" style={{ cursor: 'pointer' }}>
                     Change Avatar
                   </label>
-                </div>
-              </div>
+                </div>  {/* Close profile-avatar-wrapper */}
+              </div>  {/* Close profile-section */}
 
               {/* User Info Section */}
               <div className="profile-section">
@@ -509,7 +636,7 @@ function Sidebar({ onLogout }) {
           </div>
         </div>
       )}
-    </div>
+    </>
   )
 }
 

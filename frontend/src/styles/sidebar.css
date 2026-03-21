@@ -4,6 +4,90 @@
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
+  transition: width 0.3s ease;
+  position: relative;
+}
+
+.sidebar.collapsed {
+  width: 60px;
+}
+
+.sidebar.collapsed .server-header h2,
+.sidebar.collapsed .section-header span,
+.sidebar.collapsed .channel-name,
+.sidebar.collapsed .channel-actions,
+.sidebar.collapsed .unread-badge,
+.sidebar.collapsed .member-count,
+.sidebar.collapsed .delete-btn,
+.sidebar.collapsed .user-info span,
+.sidebar.collapsed .user-info small,
+.sidebar.collapsed .action-button span {
+  display: none;
+}
+
+.sidebar.collapsed .section-header {
+  padding: 8px 4px;
+  justify-content: center;
+}
+
+.sidebar.collapsed .icon-btn {
+  margin: 0 auto;
+}
+
+.sidebar.collapsed .channel-item {
+  justify-content: center;
+  padding: 8px;
+  gap: 0;
+}
+
+.sidebar.collapsed .channel-icon-wrapper {
+  margin: 0;
+}
+
+.sidebar.collapsed .user-info {
+  justify-content: center;
+  padding: 8px;
+}
+
+.sidebar.collapsed .user-actions {
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 4px;
+}
+
+.sidebar.collapsed .server-header {
+  padding: 8px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.hamburger-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.2);
+  border: none;
+  color: #b9bbbe;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  transition: all 0.2s ease;
+}
+
+.hamburger-btn:hover {
+  background: rgba(0, 0, 0, 0.4);
+  color: #ffffff;
+}
+
+.sidebar.collapsed .hamburger-btn {
+  position: static;
+  margin: 10px auto;
+  width: 40px;
 }
 
 .server-header {
@@ -355,6 +439,59 @@
   gap: 4px;
 }
 
+/* Collapsed User Menu */
+.user-menu-collapsed {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  position: relative;
+}
+
+.user-menu-collapsed .settings-btn {
+  width: 40px;
+  height: 40px;
+  padding: 8px;
+}
+
+.user-dropdown-menu {
+  position: absolute;
+  bottom: 50px;
+  left: 5px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  min-width: 180px;
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.user-dropdown-menu .menu-item {
+  width: 100%;
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+.user-dropdown-menu .menu-item:hover {
+  background: var(--bg-hover);
+}
+
+.user-dropdown-menu .menu-item svg {
+  width: 16px;
+  height: 16px;
+  color: var(--text-muted);
+}
+
 /* Profile Modal Styles */
 .profile-modal {
   max-width: 500px;
@@ -499,4 +636,95 @@
   background: var(--bg-hover);
   border-color: var(--accent-primary);
   color: var(--accent-primary);
+}
+
+/* Mobile Overlay */
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100vh;
+    z-index: 1000;
+    width: 240px;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+
+  .sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  /* On mobile, ignore collapsed state - always use full width */
+  .sidebar.collapsed {
+    width: 240px;
+    transform: translateX(-100%);
+  }
+  
+  .sidebar.collapsed.mobile-open {
+    transform: translateX(0);
+  }
+
+  .hamburger-btn {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    z-index: 10001;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    width: 40px;
+    height: 40px;
+    padding: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+  
+  .hamburger-btn:hover {
+    color: var(--text-primary);
+    background: var(--bg-hover);
+    border-radius: 4px;
+  }
+
+  .sidebar.collapsed .hamburger-btn {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    margin: 0;
+  }
+
+  .sidebar.mobile-open .hamburger-btn {
+    right: auto;
+    left: 256px;
+  }
+}
+
+@media (max-width: 480px) {
+  .sidebar {
+    width: 280px;
+  }
+  
+  .sidebar.collapsed {
+    width: 60px;
+  }
 }

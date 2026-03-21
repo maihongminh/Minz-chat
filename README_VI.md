@@ -437,3 +437,55 @@ Nếu gặp vấn đề:
 Chúc bạn có trải nghiệm tốt với Discord Chat! 
 
 Happy Chatting! 💬
+
+### 📱 Mobile-First Experience (Mới nhất - March 21, 2026) 🆕
+
+- ✅ **Màn hình Home Mobile** - Giao diện home riêng biệt hiển thị:
+  - Danh sách tất cả channels với badge số tin nhắn chưa đọc
+  - Danh sách Direct Messages (không bao gồm bản thân) với unread badges
+  - Click để chuyển đến chat
+  
+- ✅ **Điều hướng Mobile** 
+  - Nút quay lại (←) trong ChatArea header
+  - Chuyển đổi mượt mà giữa Home và Chat views
+  
+- ✅ **Menu người dùng Mobile**
+  - Nút avatar ở góc trên bên phải màn hình Home
+  - Dropdown menu với:
+    - 👤 Xem Profile (avatar, username, role, email)
+    - ✏️ Chỉnh sửa Profile (sửa tên + upload avatar)
+    - 🔒 Đổi mật khẩu (với validation bảo mật)
+    - 🚪 Đăng xuất
+    
+- ✅ **Chỉnh sửa Profile**
+  - Form nhập username mới
+  - Upload/thay đổi avatar với validation:
+    - Chỉ chấp nhận file ảnh
+    - Giới hạn 5MB
+    - Preview trước khi upload
+    
+- ✅ **Đổi mật khẩu**
+  - Form với 3 fields: Current Password, New Password, Confirm
+  - Validation: password khớp nhau, tối thiểu 6 ký tự
+  
+- ✅ **Tối ưu Attachment cho Mobile**
+  - Desktop (>768px): max-height 250px
+  - Mobile (≤768px): max-height 200px
+  - Small mobile (≤480px): max-height 180px
+  - Ngăn overflow khỏi message bubbles
+  
+- ✅ **UI/UX tối ưu**
+  - Hamburger menu ở góc phải (dễ bấm bằng ngón cái)
+  - Enhanced styling với background và shadow
+  - Proper state management cho mobile/desktop views
+  
+- ✅ **Responsive Breakpoints**
+  - 768px: Tablet/Mobile view
+  - 480px: Small mobile optimization
+
+#### Technical Implementation
+- Component: `MobileHome.jsx` - Dedicated mobile home screen
+- CSS: `mobilehome.css` - Mobile-specific styles  
+- Store: Added `users` to ChatStore for data sharing
+- Modals: Profile viewer, Edit profile, Change password
+- Navigation: Smart routing between Home ↔ Chat views

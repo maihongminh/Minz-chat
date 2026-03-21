@@ -526,3 +526,126 @@ None - Fully backward compatible!
 ---
 
 **Note**: Version numbers follow Semantic Versioning (SemVer)
+
+## [v2.6.0] - March 21, 2026
+
+### 🎉 Mobile-First Experience Release
+
+#### 📱 New Mobile Features
+
+**Mobile Home Screen**
+- Added dedicated home screen for mobile devices (≤768px)
+- Displays all channels with unread message badges
+- Displays all direct messages (excluding current user) with unread badges
+- Click navigation to enter chat rooms or DMs
+
+**Mobile Navigation**
+- Added back button (←) in ChatArea header for mobile
+- Smooth transitions between Home and Chat views
+- Proper state management for mobile vs desktop navigation
+
+**Mobile User Menu**
+- User avatar button in top-right corner of Home screen
+- Comprehensive dropdown menu with:
+  - Profile viewer (avatar, username, role, email)
+  - Edit Profile modal with avatar upload
+  - Change Password modal with validation
+  - Logout functionality
+
+**Profile Management on Mobile**
+- View complete profile information
+- Edit username with real-time validation
+- Upload/change avatar with:
+  - File type validation (images only)
+  - Size validation (max 5MB)
+  - Base64 encoding for upload
+  - Instant preview after upload
+- Change password with security validation:
+  - Current password verification
+  - New password confirmation
+  - Minimum length requirement (6 chars)
+
+**Responsive Optimizations**
+- Optimized attachment/image sizes:
+  - Desktop: max-height 250px (reduced from 300px)
+  - Mobile (≤768px): max-height 200px
+  - Small mobile (≤480px): max-height 180px
+- Prevents image overflow from message bubbles
+- Maintains aspect ratios
+
+**UI/UX Improvements**
+- Hamburger menu repositioned to top-right for thumb-friendly access
+- Enhanced styling with background, border, and shadow
+- Fixed state conflicts between collapsed (desktop) and mobile modes
+- Auto-reset collapsed state when switching to mobile view
+- Smooth animations and transitions
+
+#### 🔧 Technical Changes
+
+**New Components**
+- `MobileHome.jsx` - Dedicated mobile home screen component
+- Mobile-specific modals: Profile, Edit Profile, Change Password
+
+**New Styles**
+- `mobilehome.css` - Complete mobile-specific stylesheet
+- Modal overlays and forms
+- Avatar upload interface
+- Responsive breakpoints
+
+**Store Updates**
+- Added `users` array to ChatStore
+- Added `setUsers` action
+- Shared data between MobileHome and UserList components
+
+**Component Updates**
+- `Chat.jsx` - Mobile/desktop view switching logic
+- `ChatArea.jsx` - Added back button and mobile detection
+- `Sidebar.jsx` - Fixed hamburger position and mobile state handling
+- `UserList.jsx` - Now uses store data instead of props
+
+**CSS Improvements**
+- Fixed hamburger button position (left → right)
+- Added max-width constraints for attachments
+- Enhanced mobile responsiveness at 768px and 480px breakpoints
+- Improved message bubble overflow handling
+
+#### 📝 Files Changed
+```
+frontend/src/components/
+  - ChatArea.jsx (added back button)
+  - MobileHome.jsx (NEW)
+  - Sidebar.jsx (fixed hamburger, mobile state)
+  - UserList.jsx (use store data)
+
+frontend/src/pages/
+  - Chat.jsx (mobile routing logic)
+
+frontend/src/styles/
+  - chatarea.css (back button, attachment sizes)
+  - mobilehome.css (NEW)
+  - sidebar.css (hamburger position)
+
+frontend/src/utils/
+  - store.js (added users array)
+```
+
+#### 🎯 Migration Notes
+- No backend changes required
+- No database migrations needed
+- Purely frontend enhancement
+- Backward compatible with existing features
+- Automatic detection and switching based on viewport width
+
+#### 🧪 Testing Checklist
+- [x] Mobile home screen displays channels and DMs
+- [x] Back button navigates to home
+- [x] User menu opens and closes properly
+- [x] Profile viewer shows correct information
+- [x] Edit profile updates username and avatar
+- [x] Change password validates and updates
+- [x] Attachments resize correctly on mobile
+- [x] Hamburger menu accessible at top-right
+- [x] Smooth transitions between views
+- [x] Desktop mode unaffected
+- [x] Responsive at 768px and 480px breakpoints
+

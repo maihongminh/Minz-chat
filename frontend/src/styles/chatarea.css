@@ -16,6 +16,25 @@
   flex-shrink: 0;
 }
 
+.back-to-home-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background 0.2s;
+  margin-right: 4px;
+}
+
+.back-to-home-btn:hover {
+  background: var(--bg-hover);
+}
+
 .header-icon {
   font-size: 24px;
   color: var(--text-muted);
@@ -226,6 +245,14 @@
   border-radius: 12px;
   max-width: 70%;
   display: inline-block;
+}
+
+.message-compact .message-text-container {
+  max-width: 70%;
+}
+
+.message.own-message .message-compact .message-text-container {
+  max-width: 70%;
 }
 
 .message.other-message .message-compact .message-text-container {
@@ -474,11 +501,14 @@
 /* Message Attachments */
 .message-attachment {
   margin-top: 8px;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .message-image {
-  max-width: 400px;
-  max-height: 300px;
+  max-width: 100%;
+  width: auto;
+  max-height: 250px;
   border-radius: 8px;
   cursor: pointer;
   transition: opacity 0.2s;
@@ -525,6 +555,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  max-width: 100%;
   background: var(--bg-secondary);
   padding: 8px 12px;
   border-radius: 12px;
@@ -678,9 +709,10 @@
 }
 
 .message-attachments-grid:has(.message-attachment:nth-child(1):last-child) .message-image {
-  max-width: 400px;
+  max-width: 100%;
+  width: auto;
   height: auto;
-  max-height: 300px;
+  max-height: 250px;
 }
 
 .message-attachments-grid:has(.message-attachment:nth-child(2):last-child) {
@@ -1178,5 +1210,130 @@
   }
   100% {
     background: transparent;
+  }
+}
+
+/* Menu opens upward when near bottom */
+.message.menu-open-upward .message-actions-popup {
+  top: auto;
+  bottom: 100%;
+  margin-top: 0;
+  margin-bottom: 4px;
+}
+
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .chat-area {
+    width: 100%;
+  }
+
+  .chat-header {
+    padding: 12px 16px 12px 8px;
+  }
+  
+  .back-to-home-btn {
+    margin-left: -4px;
+  }
+
+  .chat-header h2 {
+    font-size: 18px;
+  }
+
+  .messages-container {
+    padding: 12px;
+  }
+
+  .message-input-container {
+    padding: 12px;
+  }
+
+  .message-input {
+    font-size: 14px;
+    padding: 10px 12px;
+  }
+
+  .message-bubble {
+    max-width: 85%;
+  }
+
+  .message-text {
+    font-size: 14px;
+  }
+
+  .file-upload-btn,
+  .send-button {
+    padding: 8px 12px;
+  }
+
+  /* Smaller attachments on mobile */
+  .message-image {
+    max-height: 200px;
+  }
+
+  .message-attachments-grid .message-image {
+    height: 120px;
+  }
+
+  .message-attachments-grid:has(.message-attachment:nth-child(1):last-child) .message-image {
+    max-height: 200px;
+  }
+}
+
+@media (max-width: 480px) {
+  .chat-header {
+    padding: 10px 12px;
+  }
+
+  .chat-header h2 {
+    font-size: 16px;
+  }
+
+  .messages-container {
+    padding: 8px;
+  }
+
+  .message-input-container {
+    padding: 8px;
+  }
+
+  .message-bubble {
+    max-width: 90%;
+    padding: 8px 12px;
+  }
+
+  .message-text {
+    font-size: 13px;
+  }
+
+  .message-sender {
+    font-size: 13px;
+  }
+
+  .message-time {
+    font-size: 10px;
+  }
+
+  .image-grid.count-2,
+  .image-grid.count-3,
+  .image-grid.count-4 {
+    grid-template-columns: 1fr;
+  }
+
+  .attachment-image {
+    max-width: 100%;
+  }
+
+  /* Even smaller on very small screens */
+  .message-image {
+    max-height: 180px;
+  }
+
+  .message-attachments-grid .message-image {
+    height: 100px;
+  }
+
+  .message-attachments-grid:has(.message-attachment:nth-child(1):last-child) .message-image {
+    max-height: 180px;
   }
 }

@@ -46,6 +46,16 @@ A modern real-time chat application built with **FastAPI** (Python) and **React*
 - Real-time updates
 - Clean and intuitive interface
 
+✅ **Mobile-First Experience** 🆕
+- **📱 Mobile Home Screen** - Dedicated home view with channel and DM lists
+- **🔙 Back Navigation** - Easy navigation between Home and Chat views
+- **👤 Mobile User Menu** - Complete profile management on mobile
+- **✏️ Profile Editor** - Edit username and upload avatar with validation
+- **🔒 Password Manager** - Change password with security validation
+- **📏 Smart Attachments** - Optimized image sizes for mobile (200px on mobile, 250px desktop)
+- **🎯 Optimized UI** - Hamburger menu positioned at top-right for easy thumb access
+- **📱 Responsive Breakpoints** - Optimized for 768px (tablet) and 480px (mobile)
+
 ## Tech Stack
 
 ### Backend

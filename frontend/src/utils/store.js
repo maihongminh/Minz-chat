@@ -19,6 +19,7 @@ export const useChatStore = create((set) => ({
   ws: null,
   messages: [],
   rooms: [],
+  users: [],
   currentRoom: null,
   currentPrivateChat: null,
   onlineUsers: [],
@@ -28,6 +29,7 @@ export const useChatStore = create((set) => ({
   unreadPrivateChats: {}, // { userId: count }
   
   setWs: (ws) => set({ ws }),
+  setUsers: (users) => set({ users }),
   addMessage: (message) => set((state) => ({ 
     messages: [...state.messages, message] 
   })),

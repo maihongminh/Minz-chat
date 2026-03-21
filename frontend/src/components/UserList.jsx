@@ -3,9 +3,9 @@ import { FaUserCircle, FaCircle } from 'react-icons/fa'
 import { useChatStore, useAuthStore } from '../utils/store'
 import '../styles/userlist.css'
 
-function UserList({ users }) {
+function UserList() {
   const { user: currentUser } = useAuthStore()
-  const { onlineUsers, currentPrivateChat, setCurrentPrivateChat, ws, setMessages, unreadPrivateChats } = useChatStore()
+  const { users, onlineUsers, currentPrivateChat, setCurrentPrivateChat, ws, setMessages, unreadPrivateChats } = useChatStore()
 
   const handleUserClick = async (user) => {
     // Only clear messages if switching to a different user

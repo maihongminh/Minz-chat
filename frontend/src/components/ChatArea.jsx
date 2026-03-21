@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { FaHashtag, FaUserCircle, FaPaperPlane, FaPaperclip, FaTimes, FaFile, FaImage, FaEllipsisV, FaEdit, FaTrash, FaCheck, FaReply, FaSmile } from 'react-icons/fa'
+import { FaHashtag, FaUserCircle, FaPaperPlane, FaPaperclip, FaTimes, FaFile, FaImage, FaEllipsisV, FaEdit, FaTrash, FaCheck, FaReply, FaSmile, FaArrowLeft } from 'react-icons/fa'
 import { useChatStore, useAuthStore } from '../utils/store'
 import { format } from 'date-fns'
 import '../styles/chatarea.css'
@@ -7,9 +7,10 @@ import '../styles/reactions.css'
 import { reactionsAPI } from '../services/reactions'
 import ReactionPicker from './ReactionPicker'
 
-function ChatArea() {
+function ChatArea({ onBackToHome }) {
   const { user } = useAuthStore()
   const { currentRoom, currentPrivateChat, messages, ws, clearUnreadRoom, clearUnreadPrivateChat, typingUsers, messageReadReceipts } = useChatStore()
+  const [isMobile, setIsMobile] = useState(false)
   const [messageInput, setMessageInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const [selectedFile, setSelectedFile] = useState(null)
@@ -29,6 +30,17 @@ function ChatArea() {
   const textareaRef = useRef(null)
   const fileInputRef = useRef(null)
   const menuRef = useRef(null)
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768)
+    }
+    
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -502,8 +514,32 @@ function ChatArea() {
     setDeleteConfirmMessageId(null)
   }
 
-  const toggleMessageMenu = (messageId) => {
-    setActiveMenuMessageId(activeMenuMessageId === messageId ? null : messageId)
+  const toggleMessageMenu = (messageId, event) => {
+    if (activeMenuMessageId === messageId) {
+      setActiveMenuMessageId(null)
+    } else {
+      setActiveMenuMessageId(messageId)
+      
+      // Check if near bottom of viewport to decide popup direction
+      if (event) {
+        const rect = event.currentTarget.getBoundingClientRect()
+        const viewportHeight = window.innerHeight
+        const distanceFromBottom = viewportHeight - rect.bottom
+        
+        // If less than 200px from bottom, menu should open upward
+        const shouldOpenUpward = distanceFromBottom < 200
+        
+        // Store this info for CSS
+        const messageElement = event.currentTarget.closest('.message')
+        if (messageElement) {
+          if (shouldOpenUpward) {
+            messageElement.classList.add('menu-open-upward')
+          } else {
+            messageElement.classList.remove('menu-open-upward')
+          }
+        }
+      }
+    }
   }
 
   // Scroll to and highlight a message when clicking on quote
@@ -602,7 +638,7 @@ function ChatArea() {
             className="message-menu-toggle-btn" 
             onClick={(e) => {
               e.stopPropagation()
-              toggleMessageMenu(msg.id)
+              toggleMessageMenu(msg.id, e)
             }}
             title="Message options"
           >
@@ -669,6 +705,11 @@ function ChatArea() {
   return (
     <div className="chat-area">
       <div className="chat-header">
+        {isMobile && onBackToHome && (
+          <button className="back-to-home-btn" onClick={onBackToHome} title="Back to Home">
+            <FaArrowLeft />
+          </button>
+        )}
         {currentRoom ? (
           <>
             <FaHashtag className="header-icon" />

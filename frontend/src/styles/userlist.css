@@ -131,3 +131,17 @@
   text-align: center;
   margin-left: auto;
 }
+
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .user-list {
+    display: none;
+  }
+}
+
+@media (max-width: 1024px) {
+  .user-list {
+    width: 200px;
+  }
+}
