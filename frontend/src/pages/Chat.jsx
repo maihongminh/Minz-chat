@@ -185,6 +185,40 @@ function Chat() {
         }))
         break
       
+      case 'message_pinned':
+        // Handle message pin
+        updateMessage(data.message.id, {
+          is_pinned: true,
+          pinned_at: data.message.pinned_at,
+          pinned_by_user_id: data.message.pinned_by_user_id,
+          pinned_by_username: data.message.pinned_by_username
+        })
+        // Dispatch event for real-time UI update
+        window.dispatchEvent(new CustomEvent('messagePinned', {
+          detail: { message: data.message }
+        }))
+        break
+      
+      case 'message_unpinned':
+        // Handle message unpin
+        updateMessage(data.message_id, {
+          is_pinned: false,
+          pinned_at: null,
+          pinned_by_user_id: null,
+          pinned_by_username: null
+        })
+        // Dispatch event for real-time UI update
+        window.dispatchEvent(new CustomEvent('messageUnpinned', {
+          detail: { message_id: data.message_id }
+        }))
+        break
+      
+      case 'error':
+        // Handle error messages from server
+        console.error('Server error:', data.message)
+        alert(data.message)
+        break
+      
       default:
         console.log('Unknown message type:', data.type)
     }

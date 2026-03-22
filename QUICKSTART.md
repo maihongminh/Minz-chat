@@ -223,6 +223,9 @@ python3 add_reply_column.py
 
 # Migration 3: Thêm bảng message_reactions (v2.3)
 python3 add_reactions_table.py
+
+# Migration 4: Thêm tính năng pin messages (v2.1) ⭐ MỚI
+python3 add_pin_migration.py
 ```
 
 Kết quả mong đợi:
@@ -244,9 +247,22 @@ Creating message_reactions table...
 ✓ Unique constraint added for (message_id, user_id, emoji)
 # hoặc nếu đã có:
 ℹ️  Table message_reactions already exists
+
+# add_pin_migration.py: ⭐ MỚI
+🔧 Starting migration: Add pin columns to messages table
+📝 Adding pin columns to messages table...
+✅ Added is_pinned column
+✅ Added pinned_at column
+✅ Added pinned_by_user_id column
+✅ Created index on is_pinned column
+✅ Migration completed successfully!
+🎉 Pin message feature is now ready to use!
 ```
 
-**💡 Lưu ý:** Luôn backup database trước khi chạy migration!
+**💡 Lưu ý:** 
+- Luôn backup database trước khi chạy migration!
+- Các migration có thể chạy nhiều lần an toàn (idempotent)
+- Pin message migration thêm 3 cột: `is_pinned`, `pinned_at`, `pinned_by_user_id`
 
 ### 4.5. Khởi động Backend
 

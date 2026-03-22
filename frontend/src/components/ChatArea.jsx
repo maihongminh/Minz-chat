@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { FaHashtag, FaUserCircle, FaPaperPlane, FaPaperclip, FaTimes, FaFile, FaImage, FaEllipsisV, FaEdit, FaTrash, FaCheck, FaReply, FaSmile, FaArrowLeft } from 'react-icons/fa'
+import { FaHashtag, FaUserCircle, FaPaperPlane, FaPaperclip, FaTimes, FaFile, FaImage, FaEllipsisV, FaEdit, FaTrash, FaCheck, FaReply, FaSmile, FaArrowLeft, FaThumbtack } from 'react-icons/fa'
 import { useChatStore, useAuthStore } from '../utils/store'
 import { format } from 'date-fns'
 import '../styles/chatarea.css'
 import '../styles/reactions.css'
 import { reactionsAPI } from '../services/reactions'
 import ReactionPicker from './ReactionPicker'
+import PinnedMessages from './PinnedMessages'
 
 function ChatArea({ onBackToHome }) {
   const { user } = useAuthStore()
@@ -25,6 +26,7 @@ function ChatArea({ onBackToHome }) {
   const [showReactionPicker, setShowReactionPicker] = useState(null)
   const [reactionPickerPosition, setReactionPickerPosition] = useState(null)
   const [messageReactions, setMessageReactions] = useState({})
+  const [pinnedMessages, setPinnedMessages] = useState([])
   const messagesEndRef = useRef(null)
   const typingTimeoutRef = useRef(null)
   const textareaRef = useRef(null)
@@ -62,6 +64,28 @@ function ChatArea({ onBackToHome }) {
     return false
   })
 
+  // Extract pinned messages from filtered messages - memoized to prevent infinite loop
+  useEffect(() => {
+    const pinned = messages
+      .filter((msg) => {
+        // Same filter logic as filteredMessages
+        if (msg.hidden || !msg.is_pinned || msg.is_deleted) return false
+        
+        if (currentRoom) {
+          return msg.room_id === currentRoom.id
+        } else if (currentPrivateChat) {
+          return msg.is_private && (
+            (msg.sender_id === user.id && msg.receiver_id === currentPrivateChat.id) ||
+            (msg.sender_id === currentPrivateChat.id && msg.receiver_id === user.id)
+          )
+        }
+        return false
+      })
+      .sort((a, b) => new Date(b.pinned_at) - new Date(a.pinned_at))
+    
+    setPinnedMessages(pinned)
+  }, [messages, currentRoom?.id, currentPrivateChat?.id, user?.id])
+
   useEffect(() => {
     scrollToBottom()
     messages.forEach(msg => loadMessageReactions(msg.id))
@@ -75,6 +99,35 @@ function ChatArea({ onBackToHome }) {
     }
     window.addEventListener('reactionUpdate', handleReactionUpdate)
     return () => window.removeEventListener('reactionUpdate', handleReactionUpdate)
+  }, [])
+
+  // Listen for pin/unpin updates from WebSocket
+  useEffect(() => {
+    const handlePinUpdate = (event) => {
+      const { message } = event.detail
+      // Update message in store will trigger filteredMessages update
+      useChatStore.getState().updateMessage(message)
+    }
+    
+    const handleUnpinUpdate = (event) => {
+      const { message_id } = event.detail
+      // Update message in store
+      const messages = useChatStore.getState().messages
+      const updatedMessages = messages.map(msg => 
+        msg.id === message_id 
+          ? { ...msg, is_pinned: false, pinned_at: null, pinned_by_user_id: null }
+          : msg
+      )
+      useChatStore.getState().setMessages(updatedMessages)
+    }
+    
+    window.addEventListener('messagePinned', handlePinUpdate)
+    window.addEventListener('messageUnpinned', handleUnpinUpdate)
+    
+    return () => {
+      window.removeEventListener('messagePinned', handlePinUpdate)
+      window.removeEventListener('messageUnpinned', handleUnpinUpdate)
+    }
   }, [])
 
   // Close menu when clicking outside
@@ -514,6 +567,23 @@ function ChatArea({ onBackToHome }) {
     setDeleteConfirmMessageId(null)
   }
 
+  const handlePinMessage = (messageId) => {
+    if (!ws) return
+    
+    ws.pinMessage(messageId)
+    setActiveMenuMessageId(null)
+  }
+
+  const handleUnpinMessage = (messageId) => {
+    if (!ws) return
+    
+    ws.unpinMessage(messageId)
+  }
+
+  const handleScrollToMessage = (messageId) => {
+    scrollToMessage(messageId)
+  }
+
   const toggleMessageMenu = (messageId, event) => {
     if (activeMenuMessageId === messageId) {
       setActiveMenuMessageId(null)
@@ -665,6 +735,13 @@ function ChatArea({ onBackToHome }) {
               >
                 <FaReply />
               </button>
+              <button 
+                className="message-action-btn" 
+                onClick={() => msg.is_pinned ? handleUnpinMessage(msg.id) : handlePinMessage(msg.id)}
+                title={msg.is_pinned ? "Unpin message" : "Pin message"}
+              >
+                <FaThumbtack style={{ color: msg.is_pinned ? '#667eea' : 'inherit' }} />
+              </button>
               {isCurrentUser && (
                 <>
                   <button 
@@ -733,6 +810,12 @@ function ChatArea({ onBackToHome }) {
       </div>
 
       <div className="messages-container" onClick={handleClearUnread}>
+        <PinnedMessages 
+          pinnedMessages={pinnedMessages}
+          onScrollToMessage={handleScrollToMessage}
+          onUnpin={handleUnpinMessage}
+          currentUserId={user?.id}
+        />
         <div className="messages-list">
           {filteredMessages.length === 0 ? (
             <div className="no-messages">

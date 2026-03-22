@@ -82,7 +82,14 @@ Xem chi tiết trong file **QUICKSTART.md**
   - Click để thêm/xóa reaction
   - Cập nhật realtime, hoạt động cả room và private chat
   - Tự động căn chỉnh vị trí thông minh
-- ✅ **Menu hành động** - Nút 3 chấm khi hover với tùy chọn Reaction/Edit/Delete/Reply 🆕
+- ✅ **Pin messages** - Ghim tin nhắn quan trọng lên đầu 🆕 v2.1
+  - Ghim tối đa 5 tin nhắn mỗi room/chat
+  - Banner gradient đẹp mắt hiển thị ở đầu khung chat
+  - Dropdown để xem nhiều tin nhắn đã ghim
+  - Click vào tin nhắn đã ghim để scroll đến vị trí gốc
+  - Tất cả users đều có thể ghim tin nhắn
+  - Đồng bộ realtime cho tất cả người dùng
+- ✅ **Menu hành động** - Nút 3 chấm khi hover với tùy chọn Reaction/Edit/Delete/Reply/Pin 🆕
 
 ### 🛡️ Admin Panel
 - ✅ Dashboard với statistics

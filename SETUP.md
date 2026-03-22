@@ -217,6 +217,27 @@ pip install -r requirements.txt
 2. Ensure you're logged in (token is valid)
 3. Backend should show WebSocket connection logs
 
+### Issue: Database migration errors
+**Solution:**
+1. Backup your database first: `pg_dump chatdb > backup.sql`
+2. Check if migration already applied (migrations are idempotent)
+3. Verify database user has ALTER TABLE permissions
+4. Check migration output for specific error messages
+
+**For pin message migration:**
+```bash
+cd backend
+source venv/bin/activate
+python3 add_pin_migration.py
+```
+Expected output:
+```
+✅ Added is_pinned column
+✅ Added pinned_at column  
+✅ Added pinned_by_user_id column
+✅ Migration completed successfully!
+```
+
 ## Optional: OAuth Setup
 
 ### Google OAuth (Optional)

@@ -460,3 +460,134 @@ async def handle_websocket_message(data: dict, user: User, db: Session):
         else:
             # Delete for me only - just send to the user
             await manager.send_personal_message(delete_data, user.id)
+    
+    elif message_type == "pin_message":
+        message_id = data.get("message_id")
+        
+        if not message_id:
+            return
+        
+        # Find the message
+        message = db.query(Message).filter(Message.id == message_id).first()
+        
+        if not message or message.is_deleted:
+            await manager.send_personal_message({
+                "type": "error",
+                "message": "Message not found"
+            }, user.id)
+            return
+        
+        # Check if already pinned
+        if message.is_pinned:
+            await manager.send_personal_message({
+                "type": "error",
+                "message": "Message is already pinned"
+            }, user.id)
+            return
+        
+        # Check pinned message limit (max 5 per room/chat)
+        if message.room_id:
+            # For room messages
+            pinned_count = db.query(Message).filter(
+                Message.room_id == message.room_id,
+                Message.is_pinned == True,
+                Message.is_deleted == False
+            ).count()
+        else:
+            # For private messages
+            pinned_count = db.query(Message).filter(
+                Message.is_private == True,
+                Message.is_pinned == True,
+                Message.is_deleted == False,
+                (
+                    ((Message.sender_id == message.sender_id) & (Message.receiver_id == message.receiver_id)) |
+                    ((Message.sender_id == message.receiver_id) & (Message.receiver_id == message.sender_id))
+                )
+            ).count()
+        
+        if pinned_count >= 5:
+            await manager.send_personal_message({
+                "type": "error",
+                "message": "Maximum 5 messages can be pinned. Please unpin a message first."
+            }, user.id)
+            return
+        
+        # Pin the message
+        message.is_pinned = True
+        message.pinned_at = datetime.utcnow()
+        message.pinned_by_user_id = user.id
+        db.commit()
+        db.refresh(message)
+        
+        # Get message sender info
+        sender = db.query(User).filter(User.id == message.sender_id).first()
+        
+        # Prepare pin notification
+        pin_data = {
+            "type": "message_pinned",
+            "message_id": message_id,
+            "message": {
+                "id": message.id,
+                "content": message.content,
+                "sender_id": message.sender_id,
+                "sender_username": sender.username if sender else "Unknown",
+                "sender_avatar": sender.avatar_url if sender else None,
+                "room_id": message.room_id,
+                "receiver_id": message.receiver_id,
+                "is_private": message.is_private,
+                "created_at": message.created_at.isoformat(),
+                "is_pinned": True,
+                "pinned_at": message.pinned_at.isoformat(),
+                "pinned_by_user_id": user.id,
+                "pinned_by_username": user.username
+            }
+        }
+        
+        # Send to appropriate recipients
+        if message.is_private and message.receiver_id:
+            await manager.send_personal_message(pin_data, user.id)
+            await manager.send_personal_message(pin_data, message.receiver_id)
+        elif message.room_id:
+            await manager.send_room_message(pin_data, message.room_id)
+    
+    elif message_type == "unpin_message":
+        message_id = data.get("message_id")
+        
+        if not message_id:
+            return
+        
+        # Find the message
+        message = db.query(Message).filter(Message.id == message_id).first()
+        
+        if not message:
+            await manager.send_personal_message({
+                "type": "error",
+                "message": "Message not found"
+            }, user.id)
+            return
+        
+        if not message.is_pinned:
+            await manager.send_personal_message({
+                "type": "error",
+                "message": "Message is not pinned"
+            }, user.id)
+            return
+        
+        # Unpin the message
+        message.is_pinned = False
+        message.pinned_at = None
+        message.pinned_by_user_id = None
+        db.commit()
+        
+        # Prepare unpin notification
+        unpin_data = {
+            "type": "message_unpinned",
+            "message_id": message_id
+        }
+        
+        # Send to appropriate recipients
+        if message.is_private and message.receiver_id:
+            await manager.send_personal_message(unpin_data, user.id)
+            await manager.send_personal_message(unpin_data, message.receiver_id)
+        elif message.room_id:
+            await manager.send_room_message(unpin_data, message.room_id)

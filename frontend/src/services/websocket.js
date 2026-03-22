@@ -119,6 +119,20 @@ export class WebSocketService {
     })
   }
 
+  pinMessage(messageId) {
+    this.send({
+      type: 'pin_message',
+      message_id: messageId,
+    })
+  }
+
+  unpinMessage(messageId) {
+    this.send({
+      type: 'unpin_message',
+      message_id: messageId,
+    })
+  }
+
   disconnect() {
     if (this.ws) {
       this.ws.close()

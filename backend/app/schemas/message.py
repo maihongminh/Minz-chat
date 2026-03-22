@@ -27,6 +27,9 @@ class MessageResponse(MessageBase):
     file_type: Optional[str] = None
     attachments: List[AttachmentResponse] = []
     reply_to: Optional[Dict[str, Any]] = None
+    is_pinned: bool = False
+    pinned_at: Optional[datetime] = None
+    pinned_by_user_id: Optional[int] = None
     
     class Config:
         from_attributes = True
@@ -34,3 +37,4 @@ class MessageResponse(MessageBase):
 class MessageWithSender(MessageResponse):
     sender_username: str
     sender_avatar: Optional[str] = None
+    pinned_by_username: Optional[str] = None

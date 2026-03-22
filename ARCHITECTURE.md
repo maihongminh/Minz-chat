@@ -147,12 +147,17 @@ class Message:
     created_at: datetime
     is_edited: bool
     is_deleted: bool
+    reply_to_message_id: int (FK -> Message, nullable)  # v2.2
+    # Pin feature (NEW - v2.1)
+    is_pinned: bool (default: False, indexed)
+    pinned_at: datetime (nullable)
+    pinned_by_user_id: int (FK -> User, nullable)
     # Legacy single file fields (backward compatible)
     file_url: str (nullable)
     file_name: str (nullable)
     file_type: str (nullable)
 
-#### Attachment Model (NEW - v2.0)
+#### Attachment Model (v2.0)
 class Attachment:
     id: int (PK)
     message_id: int (FK -> Message)
@@ -161,6 +166,15 @@ class Attachment:
     file_type: str
     file_size: bigint (nullable)
     created_at: datetime
+
+#### Message Reaction Model (v2.3)
+class MessageReaction:
+    id: int (PK)
+    message_id: int (FK -> Message)
+    user_id: int (FK -> User)
+    emoji: str
+    created_at: datetime
+    # Unique constraint: (message_id, user_id, emoji)
 ```
 
 ### 2.3. API Endpoints
@@ -193,6 +207,14 @@ class Attachment:
 - `POST /` - Send message
 - `GET /room/{room_id}` - Get room messages
 - `GET /private/{user_id}` - Get private messages
+- `PUT /{message_id}` - Edit message
+- `DELETE /{message_id}` - Delete message
+- `POST /{message_id}/pin` - Pin message (v2.1) 🆕
+- `DELETE /{message_id}/pin` - Unpin message (v2.1) 🆕
+- `GET /pinned/room/{room_id}` - Get pinned messages in room (v2.1) 🆕
+- `GET /pinned/private/{user_id}` - Get pinned messages in private chat (v2.1) 🆕
+- `POST /{message_id}/reactions` - Add reaction (v2.3)
+- `DELETE /{message_id}/reactions/{emoji}` - Remove reaction (v2.3)
 
 #### Admin (`/api/admin`)
 - `GET /stats` - Platform statistics
@@ -347,7 +369,9 @@ App
 - `users.email` (unique index)
 - `messages.created_at` (for sorting)
 - `messages.room_id` (for filtering)
-- `attachments.message_id` (NEW - for fast attachment queries)
+- `messages.is_pinned` (v2.1 - for fast pinned message queries) 🆕
+- `attachments.message_id` (v2.0 - for fast attachment queries)
+- `message_reactions.message_id` (v2.3 - for reaction queries)
 
 **Foreign Keys:**
 - `room_members.room_id` → `rooms.id` (CASCADE DELETE)
@@ -355,7 +379,11 @@ App
 - `messages.sender_id` → `users.id`
 - `messages.room_id` → `rooms.id`
 - `messages.receiver_id` → `users.id`
-- `attachments.message_id` → `messages.id` (CASCADE DELETE) (NEW)
+- `messages.reply_to_message_id` → `messages.id` (v2.2)
+- `messages.pinned_by_user_id` → `users.id` (v2.1) 🆕
+- `attachments.message_id` → `messages.id` (CASCADE DELETE) (v2.0)
+- `message_reactions.message_id` → `messages.id` (CASCADE DELETE) (v2.3)
+- `message_reactions.user_id` → `users.id` (CASCADE DELETE) (v2.3)
 
 ---
 
@@ -574,3 +602,104 @@ Admin                  Backend                 Database        All Online Users
   ├─ Click X on room     │                        │                  │
   │                       │                        │                  │
   ├─
+
+### 🆕 Pin Message Feature (v2.1)
+
+#### WebSocket Events
+
+**Client → Server:**
+```javascript
+{
+  type: 'pin_message',
+  message_id: 123
+}
+
+{
+  type: 'unpin_message',
+  message_id: 123
+}
+```
+
+**Server → Client:**
+```javascript
+// Message pinned
+{
+  type: 'message_pinned',
+  message_id: 123,
+  message: {
+    id: 123,
+    content: 'Important message',
+    is_pinned: true,
+    pinned_at: '2026-03-22T10:30:00',
+    pinned_by_user_id: 1,
+    pinned_by_username: 'john_doe'
+  }
+}
+
+// Message unpinned
+{
+  type: 'message_unpinned',
+  message_id: 123
+}
+
+// Error (e.g., pin limit reached)
+{
+  type: 'error',
+  message: 'Maximum 5 messages can be pinned'
+}
+```
+
+#### Pin Message Flow
+
+```
+User A                 Backend/WebSocket        Database          Other Users
+  │                         │                       │                  │
+  ├─ Click pin icon (📌)   │                       │                  │
+  │                         │                       │                  │
+  ├─ WS: pin_message ──────►                       │                  │
+  │   {message_id: 123}     │                       │                  │
+  │                         │                       │                  │
+  │                         ├─ Validate message ────►                  │
+  │                         │                       │                  │
+  │                         ◄─ Message exists       │                  │
+  │                         │                       │                  │
+  │                         ├─ Check pin count ─────►                  │
+  │                         │   (max 5 per room)    │                  │
+  │                         │                       │                  │
+  │                         ◄─ Count: 3 (OK)        │                  │
+  │                         │                       │                  │
+  │                         ├─ UPDATE messages ─────►                  │
+  │                         │   SET is_pinned=TRUE  │                  │
+  │                         │       pinned_at=NOW() │                  │
+  │                         │       pinned_by=1     │                  │
+  │                         │                       │                  │
+  │                         ◄─ Updated              │                  │
+  │                         │                       │                  │
+  │                         ├─ Broadcast to room ──────────────────────►
+  │ ◄─ message_pinned ──────┤   {type: 'message_pinned'}               │
+  │                         │                       │                  │
+  ├─ Show in banner        │                       │   ◄─ Show in banner
+  │                         │                       │                  │
+```
+
+#### Database Changes (v2.1)
+
+```sql
+-- Migration: add_pin_migration.py
+ALTER TABLE messages 
+ADD COLUMN is_pinned BOOLEAN DEFAULT FALSE,
+ADD COLUMN pinned_at TIMESTAMP,
+ADD COLUMN pinned_by_user_id INTEGER REFERENCES users(id);
+
+CREATE INDEX idx_messages_is_pinned ON messages(is_pinned);
+```
+
+**Migration for existing installations:**
+```bash
+cd backend
+source venv/bin/activate
+python add_pin_migration.py
+```
+
+---
+

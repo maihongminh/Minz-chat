@@ -299,7 +299,93 @@ Hướng dẫn test các chức năng của ứng dụng.
 1. Send message: `<script>alert('XSS')</script>`
 2. **Expected:** Displayed as text, script not executed
 
-### 9. Performance Tests
+### 9. Pin Message Tests (v2.1) 🆕
+
+#### ✓ Test Pin Message in Room
+1. Login vào bất kỳ room nào
+2. Hover chuột lên một message
+3. Click menu (⋮) → Click icon pin (📌)
+4. **Expected:** 
+   - Message được pin
+   - Banner gradient xuất hiện ở đầu chat
+   - Icon pin được highlight màu tím
+
+#### ✓ Test Multiple Pinned Messages
+1. Pin thêm 2-3 messages khác
+2. **Expected:**
+   - Banner hiển thị message đầu tiên
+   - Xuất hiện dropdown arrow (▼)
+   - Click dropdown để xem tất cả pinned messages
+
+#### ✓ Test Pin Limit (Max 5)
+1. Pin thêm messages cho đến khi đủ 5
+2. Thử pin message thứ 6
+3. **Expected:**
+   - Alert hiển thị: "Maximum 5 messages can be pinned"
+   - Message thứ 6 không được pin
+
+#### ✓ Test Unpin from Banner
+1. Có ít nhất 1 pinned message
+2. Click nút × bên cạnh message trong banner
+3. **Expected:**
+   - Message được unpin
+   - Banner tự động update
+   - Nếu không còn pins, banner biến mất
+
+#### ✓ Test Unpin from Menu
+1. Hover lên pinned message (có icon pin màu tím)
+2. Click menu (⋮) → Click icon pin lần nữa
+3. **Expected:**
+   - Message được unpin
+   - Icon pin không còn highlight
+   - Banner update
+
+#### ✓ Test Scroll to Pinned Message
+1. Có pinned message ở giữa conversation
+2. Scroll xuống cuối chat
+3. Click vào pinned message trong banner
+4. **Expected:**
+   - Chat tự động scroll đến vị trí message gốc
+   - Smooth scroll animation
+
+#### ✓ Test Pin in Private Chat
+1. Mở private chat với user khác
+2. Pin một message
+3. **Expected:**
+   - Message được pin
+   - Banner hiển thị trong private chat
+   - Cả 2 users đều thấy pinned message
+
+#### ✓ Test Real-time Pin Sync
+1. Mở 2 browser windows với 2 users khác nhau
+2. Cả 2 join cùng 1 room
+3. User A pin một message
+4. **Expected:**
+   - User B thấy message được pin ngay lập tức
+   - Banner xuất hiện cho cả 2 users
+
+#### ✓ Test Pin Deleted Message
+1. Pin một message
+2. Delete message đó (delete for everyone)
+3. **Expected:**
+   - Message được auto-unpin
+   - Banner update hoặc biến mất
+
+#### ✓ Test Pin with Attachments
+1. Pin message có file/image attached
+2. **Expected:**
+   - Banner hiển thị preview message
+   - Click vào pin scroll đến message với attachments
+
+#### ✓ Test Mobile Pin Feature
+1. Mở app trên mobile device hoặc resize browser
+2. Pin messages
+3. **Expected:**
+   - Banner responsive, hiển thị tốt
+   - Touch interactions hoạt động
+   - Dropdown menu dễ dàng sử dụng
+
+### 10. Performance Tests
 
 #### ✓ Test Multiple Users
 1. Open 5-10 browser windows

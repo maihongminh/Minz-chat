@@ -1,5 +1,117 @@
 # Changelog - Minz Chat Application
 
+## [v2.1.0] - 2026-03-22
+
+### 📌 Pin Messages Feature
+
+#### Added
+- **Pin Messages**: Users can now pin important messages to the top of chat
+  - Pin up to 5 messages per room or private chat
+  - Beautiful gradient banner displays pinned messages at top of chat area
+  - Click pin icon (📌) in message menu to pin/unpin
+  - Dropdown view when multiple messages are pinned
+  - Click pinned message to scroll to original location
+  - All users can pin messages (not restricted to admins)
+  - Real-time sync via WebSocket for all participants
+
+#### Features
+- **Visual Banner**: 
+  - Purple gradient banner (Discord-inspired design)
+  - Shows message content, sender, and timestamp
+  - Displays who pinned the message
+  - Auto-collapse when no pinned messages
+  
+- **Multi-Pin Support**:
+  - Pin up to 5 messages simultaneously
+  - First message shown in banner preview
+  - Click dropdown arrow to see all pinned messages
+  - Individual unpin buttons for each message
+  
+- **Smart Limits**:
+  - Server-side validation prevents exceeding 5 pins
+  - Error message when limit reached
+  - Auto-unpin when message is deleted
+
+#### Database Changes
+- Added 3 columns to `messages` table:
+  - `is_pinned` (BOOLEAN, default FALSE, indexed)
+  - `pinned_at` (TIMESTAMP, nullable)
+  - `pinned_by_user_id` (INTEGER, Foreign Key to users, nullable)
+- Created index on `is_pinned` for query performance
+- Migration script provided: `backend/add_pin_migration.py`
+
+**⚠️ Important for Existing Installations:**
+
+If you're upgrading from a previous version, you **MUST** run the migration script:
+
+```bash
+cd backend
+source venv/bin/activate
+python add_pin_migration.py
+```
+
+This will add the pin columns to the messages table.
+
+**Expected Output:**
+```
+🔧 Starting migration: Add pin columns to messages table
+📝 Adding pin columns to messages table...
+✅ Added is_pinned column
+✅ Added pinned_at column
+✅ Added pinned_by_user_id column
+✅ Created index on is_pinned column
+✅ Migration completed successfully!
+🎉 Pin message feature is now ready to use!
+```
+
+#### Modified Files
+
+**Backend (4 files):**
+- `backend/app/models/message.py` - Added pin columns and relationship
+- `backend/app/schemas/message.py` - Added pin fields to schemas
+- `backend/app/api/messages.py` - Added 4 new pin/unpin endpoints
+- `backend/app/services/websocket.py` - Added pin/unpin WebSocket handlers
+
+**Frontend (4 files):**
+- `frontend/src/components/PinnedMessages.jsx` - **NEW**: Banner component
+- `frontend/src/styles/pinnedmessages.css` - **NEW**: Banner styles
+- `frontend/src/components/ChatArea.jsx` - Integrated PinnedMessages component
+- `frontend/src/services/websocket.js` - Added pinMessage/unpinMessage methods
+- `frontend/src/pages/Chat.jsx` - Added pin event handlers
+
+**Migration & Documentation (5 files):**
+- `backend/add_pin_migration.py` - **NEW**: Migration script
+- `backend/add_pin_columns.sql` - **NEW**: SQL migration
+- `PIN_MESSAGE_GUIDE.md` - **NEW**: Complete feature guide
+- `CHANGELOG_PIN_FEATURE.md` - **NEW**: Detailed changelog
+- `IMPLEMENTATION_SUMMARY.md` - **NEW**: Implementation summary
+
+#### API Endpoints
+
+**New REST Endpoints:**
+- `POST /api/messages/{message_id}/pin` - Pin a message
+- `DELETE /api/messages/{message_id}/pin` - Unpin a message
+- `GET /api/messages/pinned/room/{room_id}` - Get pinned messages in room
+- `GET /api/messages/pinned/private/{user_id}` - Get pinned messages in private chat
+
+**WebSocket Events:**
+- Client → Server: `pin_message`, `unpin_message`
+- Server → Client: `message_pinned`, `message_unpinned`, `error`
+
+#### Technical Details
+- Database: PostgreSQL with indexed `is_pinned` column
+- Real-time: WebSocket broadcasting to all room/chat participants
+- Validation: Maximum 5 pins enforced server-side
+- UI: React component with Zustand state management
+- Performance: Optimized queries with proper indexing
+
+#### Bug Fixes
+- Fixed infinite loop in ChatArea.jsx (useEffect dependency issue)
+- Proper cleanup of event listeners
+- Stable dependencies to prevent unnecessary re-renders
+
+---
+
 ## [v2.3.0] - 2026-03-21
 
 ### 🎉 Message Reactions Feature

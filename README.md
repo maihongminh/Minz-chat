@@ -38,7 +38,14 @@ A modern real-time chat application built with **FastAPI** (Python) and **React*
   - Click to add/remove reactions
   - Realtime updates, works in rooms and private messages
   - Smart spacing and positioning
-- **Message actions menu** - 3-dot menu on hover with Reaction/Edit/Delete/Reply options 🆕
+- **Pin messages** - Pin important messages to top of chat 🆕 v2.1
+  - Pin up to 5 messages per room or private chat
+  - Beautiful gradient banner at top of chat area
+  - Dropdown view for multiple pinned messages
+  - Click pinned message to scroll to original
+  - All users can pin messages
+  - Real-time sync across all users
+- **Message actions menu** - 3-dot menu on hover with Reaction/Edit/Delete/Reply/Pin options 🆕
 
 ✅ **Modern UI**
 - Discord-inspired dark theme
@@ -144,11 +151,20 @@ nano .env
 
 **Initialize Database:**
 ```bash
-# Create all database tables
+# For NEW installations:
 python3 init_db.py
+
+# For EXISTING installations (upgrading from v2.0 or earlier):
+# Run migration to add pin message feature
+source venv/bin/activate
+python add_pin_migration.py
 ```
 
-This will create all required tables: users, rooms, room_members, messages, message_reads, and attachments.
+**What's created:**
+- New installations: All tables including `messages` table with pin columns
+- Existing installations: Adds `is_pinned`, `pinned_at`, `pinned_by_user_id` columns to existing `messages` table
+
+Required tables: users, rooms, room_members, messages, message_reads, attachments, message_reactions.
 
 ### 3. Frontend Setup
 

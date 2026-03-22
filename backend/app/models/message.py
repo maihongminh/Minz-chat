@@ -26,6 +26,11 @@ class Message(Base):
     is_deleted = Column(Boolean, default=False)
     reply_to_message_id = Column(Integer, ForeignKey("messages.id"), nullable=True)
     
+    # Pin feature
+    is_pinned = Column(Boolean, default=False, index=True)
+    pinned_at = Column(DateTime, nullable=True)
+    pinned_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    
     # Legacy file attachments (kept for backward compatibility)
     file_url = Column(Text, nullable=True)  # URL or base64 data for file
     file_name = Column(String(255), nullable=True)  # Original filename
@@ -37,6 +42,7 @@ class Message(Base):
     read_by = relationship("User", secondary=message_reads, backref="read_messages")
     attachments = relationship("Attachment", back_populates="message", cascade="all, delete-orphan")
     reactions = relationship("MessageReaction", back_populates="message", cascade="all, delete-orphan")
+    pinned_by = relationship("User", foreign_keys=[pinned_by_user_id])
     
     # Reply relationship - self-referential
     reply_to = relationship("Message", remote_side=[id], foreign_keys=[reply_to_message_id])
